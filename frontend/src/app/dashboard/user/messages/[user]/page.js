@@ -1,8 +1,8 @@
-'use client'
+"use client"; 
 
 import { useState, useEffect, useRef } from 'react'
-import Header from '@/app/dashboard/user/components/Header'
-import Footer from '@/app/dashboard/user/components/Footer'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
 
 const initialConversations = [
   {
