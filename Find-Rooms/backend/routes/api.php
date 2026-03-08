@@ -3,6 +3,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\OwnerDashboardController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -19,3 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
 });
+
+Route::get('/owner/dashboard', [OwnerDashboardController::class, 'index']);
+//update room status
+Route::patch('/owner/rooms/{room}/status', [OwnerDashboardController::class, 'updateRoomStatus']);

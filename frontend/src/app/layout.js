@@ -6,9 +6,9 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-export default function Home() {
-  redirect("/login");
-}
+// export default function Home() {
+//   redirect("/login");
+// }
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
