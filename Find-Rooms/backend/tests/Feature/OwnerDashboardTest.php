@@ -52,6 +52,27 @@ class OwnerDashboardTest extends TestCase
             ->assertJsonPath('cards.availableRooms', 1);
     }
 
+    public function test_owner_can_create_room_from_api(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+
+        $response = $this->postJson('/api/owner/rooms', [
+            'owner_id' => $owner->id,
+            'name' => 'R-10',
+            'monthly_rent' => 300,
+            'occupancy_status' => 'available',
+            'payment_status' => 'unpaid',
+        ]);
+
+        $response->assertCreated()->assertJsonPath('room.name', 'R-10');
+
+        $this->assertDatabaseHas('rooms', [
+            'owner_id' => $owner->id,
+            'name' => 'R-10',
+            'monthly_rent' => 300,
+        ]);
+    }
+
     public function test_marking_room_paid_creates_payment_record(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
