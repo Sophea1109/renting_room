@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import OwnerSidebar from '@/components/OwnerSidebar';
 import OwnerHeader from '@/components/OwnerHeader';
+import { createOwnerRoom } from '@/lib/ownerDashboardApi';
 import {
   ArrowLeft,
   Save,
@@ -47,9 +48,18 @@ export default function CreateUpdateRoomPage({ params }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       // Simulate API call
-      console.log('Form data:', formData);
+      const occupancyStatus = formData.status === 'Occupied' ? 'occupied' : 'available';
+
+      await createOwnerRoom({
+        name: formData.roomNumber || formData.name || 'Room',
+        monthly_rent: Number(formData.price || 0),
+        occupancy_status: occupancyStatus,
+        payment_status: 'unpaid',
+      });
+      
       toast.success('Room created successfully!');
       router.push('/dashboard/owner/rooms');
     } catch (error) {

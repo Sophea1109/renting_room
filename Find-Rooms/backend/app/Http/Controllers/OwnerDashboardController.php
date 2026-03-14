@@ -88,12 +88,22 @@ class OwnerDashboardController extends Controller
     public function updateRoomStatus(Request $request, Room $room): JsonResponse
     {
         $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'monthly_rent' => 'sometimes|numeric|min:0',
             'occupancy_status' => 'sometimes|in:available,occupied',
             'payment_status' => 'sometimes|in:paid,unpaid',
             'paid_at' => 'nullable|date',
         ]);
 
         $previousPaymentStatus = $room->payment_status;
+
+        if (array_key_exists('name', $validated)) {
+            $room->name = $validated['name'];
+        }
+
+        if (array_key_exists('monthly_rent', $validated)) {
+            $room->monthly_rent = $validated['monthly_rent'];
+        }
 
         if (array_key_exists('occupancy_status', $validated)) {
             $room->occupancy_status = $validated['occupancy_status'];

@@ -1,17 +1,63 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+// import React, { useState, useEffect } from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import OwnerSidebar from "@/components/OwnerSidebar";
 import OwnerHeader from "@/components/OwnerHeader";
 import { rooms as initialRooms } from "@/data/roomData";
 import Link from "next/link";
-import { FiTrash2, FiEdit, FiAlertTriangle, FiMapPin, FiMail, FiHome, FiDollarSign, FiUser, FiCamera } from "react-icons/fi";
-import Image from "next/image";
+// import { FiTrash2, FiEdit, FiAlertTriangle, FiMapPin, FiMail, FiHome, FiDollarSign, FiUser, FiCamera } from "react-icons/fi";
+// import Image from "next/image";
+import {
+  FiTrash2,
+  FiEdit,
+  FiAlertTriangle,
+  FiMapPin,
+  FiMail,
+  FiHome,
+  FiDollarSign,
+  FiUser,
+  FiCamera,
+} from "react-icons/fi";
+import {
+  fetchOwnerDashboard,
+  updateOwnerRoomStatus,
+} from "@/lib/ownerDashboardApi";
+
+function toPriceLabel(monthlyRent) {
+  return `$${Number(monthlyRent || 0)}/mo`;
+}
+
+function normalizeApiRoom(room) {
+  return {
+    id: room.id,
+    title: room.name,
+    description: "Managed room",
+    location: "Not specified",
+    price: toPriceLabel(room.monthlyRent),
+    image: "",
+    owner: {
+      name: "Owner",
+      avatar: "",
+      contact: "",
+    },
+    occupancyStatus: room.occupancyStatus || "available",
+    paymentStatus: room.paymentStatus || "unpaid",
+  };
+}
+
+function normalizeFallbackRoom(room) {
+  return {
+    ...room,
+    occupancyStatus: room.occupancyStatus || "available",
+    paymentStatus: room.paymentStatus || "unpaid",
+  };
+}
 
 export default function RoomsPage() {
   const [activeTab, setActiveTab] = useState("rooms");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [roomsList, setRoomsList] = useState(initialRooms);
+  const [roomsList, setRoomsList] = useState(initialRooms.map(normalizeFallbackRoom));
 
   // Delete states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -33,11 +79,13 @@ export default function RoomsPage() {
     location: "",
     price: "",
     image: "",
+    occupancyStatus: "available",
+    paymentStatus: "unpaid",
     owner: {
       name: "",
       avatar: "",
-      contact: ""
-    }
+      contact: "",
+    },
   });
 
   // Available locations for dropdown
@@ -49,10 +97,25 @@ export default function RoomsPage() {
     "Sen Sok",
     "Chroy Changvar",
     "Dangkao",
-    "Meanchey"
+    "Meanchey",
   ];
 
   // Handle edit click
+  const loadRoomsFromApi = useCallback(async () => {
+    try {
+      const data = await fetchOwnerDashboard();
+      if (Array.isArray(data.rooms) && data.rooms.length > 0) {
+        setRoomsList(data.rooms.map(normalizeApiRoom));
+      }
+    } catch {
+      // fallback to local data silently
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRoomsFromApi();
+  }, [loadRoomsFromApi]);
+
   const handleEditClick = (room) => {
     setRoomToEdit(room);
     setFormData({
@@ -61,11 +124,13 @@ export default function RoomsPage() {
       location: room.location,
       price: room.price.replace("$", "").replace("/mo", ""),
       image: room.image,
+      occupancyStatus: room.occupancyStatus || "available",
+      paymentStatus: room.paymentStatus || "unpaid",
       owner: {
         name: room.owner.name,
         avatar: room.owner.avatar,
-        contact: room.owner.contact || ""
-      }
+        contact: room.owner.contact || "",
+      },
     });
     setShowEditModal(true);
   };
@@ -76,30 +141,42 @@ export default function RoomsPage() {
     
     if (name.startsWith("owner.")) {
       const ownerField = name.split(".")[1];
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         owner: {
           ...prev.owner,
-          [ownerField]: value
-        }
+          [ownerField]: value,
+        },
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
 
   // Handle edit submission
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
+    if (!roomToEdit) return;
     setIsEditing(true);
 
     // Simulate API call delay
-    setTimeout(() => {
-      const updatedRooms = roomsList.map(room => {
-        if (room.id === roomToEdit.id) {
+    // setTimeout(() => {
+    //   const updatedRooms = roomsList.map(room => {
+    //     if (room.id === roomToEdit.id) {
+    try {
+      await updateOwnerRoomStatus(roomToEdit.id, {
+        name: formData.title,
+        monthly_rent: Number(formData.price || 0),
+        occupancy_status: formData.occupancyStatus,
+        payment_status: formData.paymentStatus,
+      });
+
+      setRoomsList((prevRooms) =>
+        prevRooms.map((room) => {
+          if (room.id !== roomToEdit.id) return room;
           return {
             ...room,
             title: formData.title,
@@ -107,27 +184,33 @@ export default function RoomsPage() {
             location: formData.location,
             price: `$${formData.price}/mo`,
             image: formData.image,
+            occupancyStatus: formData.occupancyStatus,
+            paymentStatus: formData.paymentStatus,
             owner: {
               ...room.owner,
               name: formData.owner.name,
-              contact: formData.owner.contact
-            }
+              contact: formData.owner.contact,
+            },
           };
-        }
-        return room;
-      });
+        })
+      );
 
-      setRoomsList(updatedRooms);
-      setIsEditing(false);
+      // setRoomsList(updatedRooms);
+      // setIsEditing(false);
       setShowEditModal(false);
       setRoomToEdit(null);
       setShowEditSuccessAlert(true);
+      setTimeout(() => setShowEditSuccessAlert(false), 5000);
 
       // Auto-hide success alert after 5 seconds
-      setTimeout(() => {
-        setShowEditSuccessAlert(false);
-      }, 5000);
-    }, 800);
+    //   setTimeout(() => {
+    //     setShowEditSuccessAlert(false);
+    //   }, 5000);
+    // }, 800);
+    await loadRoomsFromApi();
+    } finally {
+      setIsEditing(false);
+    }
   };
 
   // Handle delete click
@@ -137,24 +220,36 @@ export default function RoomsPage() {
   };
 
   const confirmDelete = () => {
-    if (roomToDelete) {
-      setIsDeleting(true);
+    // if (roomToDelete) {
+    //   setIsDeleting(true);
 
-      setTimeout(() => {
-        setRoomsList((prevRooms) =>
-          prevRooms.filter((room) => room.id !== roomToDelete.id)
-        );
-        setDeletedRoomName(roomToDelete.name);
-        setShowSuccessAlert(true);
-        setIsDeleting(false);
-        setShowDeleteModal(false);
-        setRoomToDelete(null);
+    //   setTimeout(() => {
+    //     setRoomsList((prevRooms) =>
+    //       prevRooms.filter((room) => room.id !== roomToDelete.id)
+    //     );
+    //     setDeletedRoomName(roomToDelete.name);
+    //     setShowSuccessAlert(true);
+    //     setIsDeleting(false);
+    //     setShowDeleteModal(false);
+    //     setRoomToDelete(null);
 
-        setTimeout(() => {
-          setShowSuccessAlert(false);
-        }, 5000);
-      }, 800);
-    }
+    //     setTimeout(() => {
+    //       setShowSuccessAlert(false);
+    //     }, 5000);
+    //   }, 800);
+    // }
+    if (!roomToDelete) return;
+
+    setIsDeleting(true);
+    setTimeout(() => {
+      setRoomsList((prevRooms) => prevRooms.filter((room) => room.id !== roomToDelete.id));
+      setDeletedRoomName(roomToDelete.name);
+      setShowSuccessAlert(true);
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setRoomToDelete(null);
+      setTimeout(() => setShowSuccessAlert(false), 5000);
+    }, 800);
   };
 
   const cancelDelete = () => {
@@ -165,18 +260,18 @@ export default function RoomsPage() {
   const cancelEdit = () => {
     setShowEditModal(false);
     setRoomToEdit(null);
-    setFormData({
-      title: "",
-      description: "",
-      location: "",
-      price: "",
-      image: "",
-      owner: {
-        name: "",
-        avatar: "",
-        contact: ""
-      }
-    });
+    // setFormData({
+    //   title: "",
+    //   description: "",
+    //   location: "",
+    //   price: "",
+    //   image: "",
+    //   owner: {
+    //     name: "",
+    //     avatar: "",
+    //     contact: ""
+    //   }
+    // });
   };
 
   return (
@@ -200,7 +295,8 @@ export default function RoomsPage() {
           {showSuccessAlert && (
             <div className="absolute top-6 right-6 z-50 animate-slide-in">
               <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-lg max-w-md">
-                <div className="flex">
+
+                {/* <div className="flex">
                   <div className="flex-shrink-0">
                     <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -218,7 +314,10 @@ export default function RoomsPage() {
                       </svg>
                     </button>
                   </div>
-                </div>
+                </div> */}
+                <p className="text-sm font-medium text-green-800">
+                  Room &quot;{deletedRoomName}&quot; has been deleted successfully.
+                </p>
               </div>
             </div>
           )}
@@ -227,7 +326,8 @@ export default function RoomsPage() {
           {showEditSuccessAlert && (
             <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 animate-slide-in">
               <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-lg max-w-md">
-                <div className="flex">
+
+                {/* <div className="flex">
                   <div className="flex-shrink-0">
                     <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -245,7 +345,10 @@ export default function RoomsPage() {
                       </svg>
                     </button>
                   </div>
-                </div>
+                </div> */}
+                <p className="text-sm font-medium text-green-800">
+                  Room &quot;{formData.title}&quot; has been updated successfully.
+                </p>
               </div>
             </div>
           )}
@@ -272,6 +375,7 @@ export default function RoomsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room Details</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -283,11 +387,12 @@ export default function RoomsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-12 w-16 mr-4 relative overflow-hidden rounded-md bg-gray-200 flex items-center justify-center">
-                          {room.image ? (
+                          {/* {room.image ? (
                             <div className="text-gray-400 text-xs">Image</div>
                           ) : (
                             <FiHome className="w-6 h-6 text-gray-400" />
-                          )}
+                          )} */}
+                          {room.image ? <div className="text-gray-400 text-xs">Image</div> : <FiHome className="w-6 h-6 text-gray-400" />}
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">{room.title}</div>
@@ -295,16 +400,28 @@ export default function RoomsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    {/* <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-700">
                         <FiMapPin className="w-4 h-4 mr-1 text-gray-400" />
                         {room.location}
-                      </div>
+                      </div> */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <div className="flex items-center"><FiMapPin className="w-4 h-4 mr-1 text-gray-400" />{room.location}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                         {room.price}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <div className="space-y-1">
+                        <div>
+                          <span className="font-medium">Occupancy:</span> {room.occupancyStatus === "occupied" ? "Occupied" : "Unoccupied"}
+                        </div>
+                        <div>
+                          <span className="font-medium">Payment:</span> {room.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
@@ -314,29 +431,35 @@ export default function RoomsPage() {
                         <div>
                           <div className="text-sm font-medium text-gray-900">{room.owner.name}</div>
                           {room.owner.contact && (
-                            <div className="text-xs text-gray-500 flex items-center">
-                              <FiMail className="w-3 h-3 mr-1" />
-                              {room.owner.contact}
-                            </div>
+                            // <div className="text-xs text-gray-500 flex items-center">
+                            //   <FiMail className="w-3 h-3 mr-1" />
+                            //   {room.owner.contact}
+                            // </div>
+                            <div className="text-xs text-gray-500 flex items-center"><FiMail className="w-3 h-3 mr-1" />{room.owner.contact}</div>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-3">
-                        <button
+                        {/* <button
                           className="text-blue-600 hover:text-blue-900 transition-all hover:underline flex items-center gap-1"
                           onClick={() => handleEditClick(room)}
                         >
                           <FiEdit className="w-4 h-4" />
-                          Edit
+                          Edit */}
+                        <button className="text-blue-600 hover:text-blue-900 transition-all hover:underline flex items-center gap-1" onClick={() => handleEditClick(room)}>
+                          <FiEdit className="w-4 h-4" />Edit  
                         </button>
-                        <button
+
+                        {/* <button
                           className="text-red-600 hover:text-red-900 transition-all hover:underline flex items-center gap-1"
                           onClick={() => handleDeleteClick(room.id, room.title)}
                         >
                           <FiTrash2 className="w-4 h-4" />
-                          Delete
+                          Delete */}
+                        <button className="text-red-600 hover:text-red-900 transition-all hover:underline flex items-center gap-1" onClick={() => handleDeleteClick(room.id, room.title)}>
+                          <FiTrash2 className="w-4 h-4" />Delete
                         </button>
                       </div>
                     </td>
@@ -359,7 +482,7 @@ export default function RoomsPage() {
                   <FiEdit className="h-6 w-6 text-blue-500" />
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">Edit Room</h3>
-                    <p className="text-sm text-gray-500 mt-1">Update room details</p>
+                    <p className="text-sm text-gray-500 mt-1">Update room details and status</p>
                   </div>
                 </div>
                 <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-500">
@@ -375,28 +498,16 @@ export default function RoomsPage() {
               <div className="space-y-6">
                 {/* Room Title */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Room Title
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Room Title</label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FiHome className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      required
-                      className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      placeholder="Enter room title"
-                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiHome className="h-5 w-5 text-gray-400" /></div>
+                    <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg" />
                   </div>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {/* <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description
                   </label>
                   <textarea
@@ -407,17 +518,20 @@ export default function RoomsPage() {
                     rows="3"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                     placeholder="Enter room description"
-                  />
+                  /> */}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <textarea name="description" value={formData.description} onChange={handleInputChange} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                 </div>
 
                 {/* Location and Price */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {/* <label className="block text-sm font-medium text-gray-700 mb-2">
                       Location
-                    </label>
+                    </label> */}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FiMapPin className="h-5 w-5 text-gray-400" />
                       </div>
                       <select
@@ -426,23 +540,27 @@ export default function RoomsPage() {
                         onChange={handleInputChange}
                         required
                         className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none"
-                      >
+                      > */}
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiMapPin className="h-5 w-5 text-gray-400" /></div>
+                      <select name="location" value={formData.location} onChange={handleInputChange} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg">
                         <option value="">Select Location</option>
-                        {locations.map((loc) => (
+                        {/* {locations.map((loc) => (
                           <option key={loc} value={loc}>
                             {loc}
                           </option>
-                        ))}
+                        ))} */}
+                        {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
                       </select>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {/* <label className="block text-sm font-medium text-gray-700 mb-2">
                       Price (per month)
-                    </label>
+                    </label> */}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price (per month)</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FiDollarSign className="h-5 w-5 text-gray-400" />
                       </div>
                       <input
@@ -458,21 +576,41 @@ export default function RoomsPage() {
                       />
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                         <span className="text-gray-500">/mo</span>
-                      </div>
+                      </div> */}
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiDollarSign className="h-5 w-5 text-gray-400" /></div>
+                      <input type="number" name="price" value={formData.price} onChange={handleInputChange} required min="0" step="50" className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg" />
                     </div>
                   </div>
                 </div>
 
                 {/* Owner Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Occupancy</label>
+                    <select name="occupancyStatus" value={formData.occupancyStatus} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                      <option value="available">Unoccupied</option>
+                      <option value="occupied">Occupied</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment</label>
+                    <select name="paymentStatus" value={formData.paymentStatus} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                      <option value="unpaid">Unpaid</option>
+                      <option value="paid">Paid</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <h4 className="text-md font-medium text-gray-900">Owner Information</h4>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {/* <label className="block text-sm font-medium text-gray-700 mb-2">
                       Owner Name
-                    </label>
+                    </label> */}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Owner Name</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FiUser className="h-5 w-5 text-gray-400" />
                       </div>
                       <input
@@ -483,16 +621,19 @@ export default function RoomsPage() {
                         required
                         className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         placeholder="Enter owner name"
-                      />
+                      /> */}
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiUser className="h-5 w-5 text-gray-400" /></div>
+                      <input type="text" name="owner.name" value={formData.owner.name} onChange={handleInputChange} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg" />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {/* <label className="block text-sm font-medium text-gray-700 mb-2">
                       Contact Email
-                    </label>
+                    </label> */}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FiMail className="h-5 w-5 text-gray-400" />
                       </div>
                       <input
@@ -502,18 +643,21 @@ export default function RoomsPage() {
                         onChange={handleInputChange}
                         className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         placeholder="Enter contact email"
-                      />
+                      /> */}
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiMail className="h-5 w-5 text-gray-400" /></div>
+                      <input type="email" name="owner.contact" value={formData.owner.contact} onChange={handleInputChange} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg" />
                     </div>
                   </div>
                 </div>
 
                 {/* Image URL */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {/* <label className="block text-sm font-medium text-gray-700 mb-2">
                     Image URL
-                  </label>
+                  </label> */}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <FiCamera className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
@@ -523,14 +667,16 @@ export default function RoomsPage() {
                       onChange={handleInputChange}
                       className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                       placeholder="Enter image URL"
-                    />
+                    /> */}
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiCamera className="h-5 w-5 text-gray-400" /></div>
+                    <input type="text" name="image" value={formData.image} onChange={handleInputChange} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg" />
                   </div>
                 </div>
               </div>
 
               {/* Modal Footer */}
               <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
-                <button
+                {/* <button
                   type="button"
                   onClick={cancelEdit}
                   disabled={isEditing}
@@ -553,7 +699,10 @@ export default function RoomsPage() {
                     </>
                   ) : (
                     'Save Changes'
-                  )}
+                  )} */}
+                  <button type="button" onClick={cancelEdit} disabled={isEditing} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg">Cancel</button>
+                <button type="submit" disabled={isEditing} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2">
+                  {isEditing ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
@@ -568,9 +717,10 @@ export default function RoomsPage() {
             {/* Modal Header */}
             <div className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0">
+                {/* <div className="flex-shrink-0">
                   <FiAlertTriangle className="h-6 w-6 text-red-500" />
-                </div>
+                </div> */}
+                <FiAlertTriangle className="h-6 w-6 text-red-500" />
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Delete Room</h3>
                   <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete this room?</p>
@@ -578,15 +728,16 @@ export default function RoomsPage() {
               </div>
 
               <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-md">
-                <p className="text-sm text-red-800">
+                {/* <p className="text-sm text-red-800">
                   Room "{roomToDelete?.name}" will be permanently deleted. This action cannot be undone.
-                </p>
+                </p> */}
+                <p className="text-sm text-red-800">Room &quot;{roomToDelete?.name}&quot; will be permanently deleted.</p>
               </div>
             </div>
 
             {/* Modal Footer */}
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
-              <button
+              {/* <button
                 onClick={cancelDelete}
                 disabled={isDeleting}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -608,7 +759,10 @@ export default function RoomsPage() {
                   </>
                 ) : (
                   "Delete"
-                )}
+                )} */}
+                <button onClick={cancelDelete} disabled={isDeleting} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg">Cancel</button>
+              <button onClick={confirmDelete} disabled={isDeleting} className="px-4 py-2 bg-red-600 text-white rounded-lg">
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
