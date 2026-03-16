@@ -22,6 +22,6 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/owner/dashboard', [OwnerDashboardController::class, 'index']);
-//update room status
 Route::post('/owner/rooms', [OwnerDashboardController::class, 'createRoom']);
 Route::patch('/owner/rooms/{room}/status', [OwnerDashboardController::class, 'updateRoomStatus']);
+Route::delete('/owner/rooms/{room}', [OwnerDashboardController::class, 'deleteRoom']);

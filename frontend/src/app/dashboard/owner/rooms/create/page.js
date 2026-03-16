@@ -31,6 +31,7 @@ export default function CreateUpdateRoomPage({ params }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
     roomNumber: '',
@@ -48,13 +49,35 @@ export default function CreateUpdateRoomPage({ params }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+
+    const statusToOccupancy = {
+      Occupied: 'occupied',
+      Available: 'available',
+      Maintenance: 'available',
+      Reserved: 'available',
+      Cleaning: 'available',
+    };
+
+    const payload = {
+      name: formData.roomNumber || formData.name || 'Room',
+      monthly_rent: Number(formData.price || 0),
+      occupancy_status: statusToOccupancy[formData.status] || 'available',
+      payment_status: 'unpaid',
+      description: formData.description || null,
+      image_url: formData.images?.[0]?.url || null,
+    };
 
     try {
-      // Simulate API call
       const occupancyStatus = formData.status === 'Occupied' ? 'occupied' : 'available';
 
       await createOwnerRoom({
         name: formData.roomNumber || formData.name || 'Room',
+        description: formData.description || '',
+        location: 'Not specified',
+        owner_name: 'Owner',
+        contact_email: '',
+        image_url: formData.images?.[0]?.url || '',
         monthly_rent: Number(formData.price || 0),
         occupancy_status: occupancyStatus,
         payment_status: 'unpaid',
@@ -63,7 +86,10 @@ export default function CreateUpdateRoomPage({ params }) {
       toast.success('Room created successfully!');
       router.push('/dashboard/owner/rooms');
     } catch (error) {
-      toast.error('Failed to create room');
+      const message = error?.message || 'Failed to create room';
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -496,10 +522,11 @@ export default function CreateUpdateRoomPage({ params }) {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                    disabled={submitting}
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <Save size={18} />
-                    Create Room
+                    {submitting ? 'Creating...' : 'Create Room'}
                   </button>
                 </div>
               </div>

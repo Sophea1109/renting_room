@@ -266,6 +266,7 @@ export default function DashboardOverview() {
             </div>
           </div>
           <div className="h-72">
+            {/*  */}
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={dashboardData.charts.weeklyOccupancy || weeklyOccupancySnapshots}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -301,6 +302,7 @@ export default function DashboardOverview() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+          {/*  */}
         </div>
       </div>
 

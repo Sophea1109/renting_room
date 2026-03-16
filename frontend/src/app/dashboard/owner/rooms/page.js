@@ -1,13 +1,10 @@
 "use client";
 
-// import React, { useState, useEffect } from "react";
 import React, {useCallback, useEffect, useState} from "react";
 import OwnerSidebar from "@/components/OwnerSidebar";
 import OwnerHeader from "@/components/OwnerHeader";
 import { rooms as initialRooms } from "@/data/roomData";
 import Link from "next/link";
-// import { FiTrash2, FiEdit, FiAlertTriangle, FiMapPin, FiMail, FiHome, FiDollarSign, FiUser, FiCamera } from "react-icons/fi";
-// import Image from "next/image";
 import {
   FiTrash2,
   FiEdit,
@@ -19,10 +16,13 @@ import {
   FiUser,
   FiCamera,
 } from "react-icons/fi";
-import {
+import ownerDashboardApi from "@/lib/ownerDashboardApi";
+
+const {
   fetchOwnerDashboard,
   updateOwnerRoomStatus,
-} from "@/lib/ownerDashboardApi";
+  deleteOwnerRoom,
+} = ownerDashboardApi;
 
 function toPriceLabel(monthlyRent) {
   return `$${Number(monthlyRent || 0)}/mo`;
@@ -32,14 +32,14 @@ function normalizeApiRoom(room) {
   return {
     id: room.id,
     title: room.name,
-    description: "Managed room",
-    location: "Not specified",
+    description: room.description || "",
+    location: room.location || "",
     price: toPriceLabel(room.monthlyRent),
-    image: "",
+    image: room.imageUrl || "",
     owner: {
-      name: "Owner",
+      name: room.ownerName || "Owner",
       avatar: "",
-      contact: "",
+      contact: room.contactEmail || "",
     },
     occupancyStatus: room.occupancyStatus || "available",
     paymentStatus: room.paymentStatus || "unpaid",
@@ -71,6 +71,7 @@ export default function RoomsPage() {
   const [roomToEdit, setRoomToEdit] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showEditSuccessAlert, setShowEditSuccessAlert] = useState(false);
+  const [actionError, setActionError] = useState('');
   
   // Form states
   const [formData, setFormData] = useState({
@@ -104,7 +105,7 @@ export default function RoomsPage() {
   const loadRoomsFromApi = useCallback(async () => {
     try {
       const data = await fetchOwnerDashboard();
-      if (Array.isArray(data.rooms) && data.rooms.length > 0) {
+      if (Array.isArray(data.rooms)) {
         setRoomsList(data.rooms.map(normalizeApiRoom));
       }
     } catch {
@@ -158,100 +159,83 @@ export default function RoomsPage() {
 
   // Handle edit submission
   const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    if (!roomToEdit) return;
-    setIsEditing(true);
+  e.preventDefault();
+  if (!roomToEdit) return;
 
-    // Simulate API call delay
-    // setTimeout(() => {
-    //   const updatedRooms = roomsList.map(room => {
-    //     if (room.id === roomToEdit.id) {
-    try {
-      await updateOwnerRoomStatus(roomToEdit.id, {
-        name: formData.title,
-        monthly_rent: Number(formData.price || 0),
-        occupancy_status: formData.occupancyStatus,
-        payment_status: formData.paymentStatus,
-      });
+  setIsEditing(true);
+  setActionError('');
 
-      setRoomsList((prevRooms) =>
-        prevRooms.map((room) => {
-          if (room.id !== roomToEdit.id) return room;
-          return {
-            ...room,
-            title: formData.title,
-            description: formData.description,
-            location: formData.location,
-            price: `$${formData.price}/mo`,
-            image: formData.image,
-            occupancyStatus: formData.occupancyStatus,
-            paymentStatus: formData.paymentStatus,
-            owner: {
-              ...room.owner,
-              name: formData.owner.name,
-              contact: formData.owner.contact,
-            },
-          };
-        })
-      );
+  try {
+    await updateOwnerRoomStatus(roomToEdit.id, {
+      name: formData.title,
+      description: formData.description,
+      location: formData.location,
+      image_url: formData.image,
+      owner_name: formData.owner.name,
+      contact_email: formData.owner.contact,
+      monthly_rent: Number(formData.price || 0),
+      occupancy_status: formData.occupancyStatus,
+      payment_status: formData.paymentStatus,
+    });
 
-      // setRoomsList(updatedRooms);
-      // setIsEditing(false);
-      setShowEditModal(false);
-      setRoomToEdit(null);
-      setShowEditSuccessAlert(true);
-      setTimeout(() => setShowEditSuccessAlert(false), 5000);
+    setRoomsList((prevRooms) =>
+      prevRooms.map((room) => {
+        if (room.id !== roomToEdit.id) return room;
+        return {
+          ...room,
+          title: formData.title,
+          description: formData.description,
+          location: formData.location,
+          price: `$${formData.price}/mo`,
+          image: formData.image,
+          occupancyStatus: formData.occupancyStatus,
+          paymentStatus: formData.paymentStatus,
+          owner: {
+            ...room.owner,
+            name: formData.owner.name,
+            contact: formData.owner.contact,
+          },
+        };
+      })
+    );
 
-      // Auto-hide success alert after 5 seconds
-    //   setTimeout(() => {
-    //     setShowEditSuccessAlert(false);
-    //   }, 5000);
-    // }, 800);
+    setShowEditModal(false);
+    setRoomToEdit(null);
+    setShowEditSuccessAlert(true);
+    setTimeout(() => setShowEditSuccessAlert(false), 5000);
+
     await loadRoomsFromApi();
-    } finally {
-      setIsEditing(false);
-    }
-  };
+  } catch (error) {
+    setActionError(error?.message || 'Failed to update room status');
+  } finally {
+    setIsEditing(false);
+  }
+};
 
-  // Handle delete click
-  const handleDeleteClick = (roomId, roomName) => {
-    setRoomToDelete({ id: roomId, name: roomName });
-    setShowDeleteModal(true);
-  };
+const handleDeleteClick = (roomId, roomName) => {
+  setRoomToDelete({ id: roomId, name: roomName });
+  setShowDeleteModal(true);
+};
 
-  const confirmDelete = () => {
-    // if (roomToDelete) {
-    //   setIsDeleting(true);
+const confirmDelete = async () => {
+  if (!roomToDelete) return;
 
-    //   setTimeout(() => {
-    //     setRoomsList((prevRooms) =>
-    //       prevRooms.filter((room) => room.id !== roomToDelete.id)
-    //     );
-    //     setDeletedRoomName(roomToDelete.name);
-    //     setShowSuccessAlert(true);
-    //     setIsDeleting(false);
-    //     setShowDeleteModal(false);
-    //     setRoomToDelete(null);
-
-    //     setTimeout(() => {
-    //       setShowSuccessAlert(false);
-    //     }, 5000);
-    //   }, 800);
-    // }
-    if (!roomToDelete) return;
-
-    setIsDeleting(true);
-    setTimeout(() => {
-      setRoomsList((prevRooms) => prevRooms.filter((room) => room.id !== roomToDelete.id));
-      setDeletedRoomName(roomToDelete.name);
-      setShowSuccessAlert(true);
-      setIsDeleting(false);
-      setShowDeleteModal(false);
-      setRoomToDelete(null);
-      setTimeout(() => setShowSuccessAlert(false), 5000);
-    }, 800);
-  };
-
+  setIsDeleting(true);
+  setActionError('');
+  try {
+    await deleteOwnerRoom(roomToDelete.id);
+    setRoomsList((prevRooms) => prevRooms.filter((room) => room.id !== roomToDelete.id));
+    setDeletedRoomName(roomToDelete.name);
+    setShowSuccessAlert(true);
+    setShowDeleteModal(false);
+    setRoomToDelete(null);
+    setTimeout(() => setShowSuccessAlert(false), 5000);
+  } catch (error) {
+    setActionError(error?.message || 'Failed to delete room');
+  } finally {
+    setIsDeleting(false);
+  }
+}  
   const cancelDelete = () => {
     setShowDeleteModal(false);
     setRoomToDelete(null);
@@ -260,18 +244,6 @@ export default function RoomsPage() {
   const cancelEdit = () => {
     setShowEditModal(false);
     setRoomToEdit(null);
-    // setFormData({
-    //   title: "",
-    //   description: "",
-    //   location: "",
-    //   price: "",
-    //   image: "",
-    //   owner: {
-    //     name: "",
-    //     avatar: "",
-    //     contact: ""
-    //   }
-    // });
   };
 
   return (
@@ -295,29 +267,16 @@ export default function RoomsPage() {
           {showSuccessAlert && (
             <div className="absolute top-6 right-6 z-50 animate-slide-in">
               <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-lg max-w-md">
-
-                {/* <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-green-800">
-                      Room "{deletedRoomName}" has been deleted successfully.
-                    </p>
-                  </div>
-                  <div className="ml-auto pl-3">
-                    <button onClick={() => setShowSuccessAlert(false)} className="text-green-800 hover:text-green-600">
-                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                </div> */}
                 <p className="text-sm font-medium text-green-800">
                   Room &quot;{deletedRoomName}&quot; has been deleted successfully.
                 </p>
+              </div>
+            </div>
+          )}
+          {actionError && (
+            <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 animate-slide-in">
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg shadow-lg max-w-md">
+                <p className="text-sm font-medium text-red-800">{actionError}</p>
               </div>
             </div>
           )}
@@ -326,26 +285,6 @@ export default function RoomsPage() {
           {showEditSuccessAlert && (
             <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 animate-slide-in">
               <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-lg max-w-md">
-
-                {/* <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-green-800">
-                      Room "{formData.title}" has been updated successfully.
-                    </p>
-                  </div>
-                  <div className="ml-auto pl-3">
-                    <button onClick={() => setShowEditSuccessAlert(false)} className="text-green-800 hover:text-green-600">
-                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                </div> */}
                 <p className="text-sm font-medium text-green-800">
                   Room &quot;{formData.title}&quot; has been updated successfully.
                 </p>
@@ -387,11 +326,6 @@ export default function RoomsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-12 w-16 mr-4 relative overflow-hidden rounded-md bg-gray-200 flex items-center justify-center">
-                          {/* {room.image ? (
-                            <div className="text-gray-400 text-xs">Image</div>
-                          ) : (
-                            <FiHome className="w-6 h-6 text-gray-400" />
-                          )} */}
                           {room.image ? <div className="text-gray-400 text-xs">Image</div> : <FiHome className="w-6 h-6 text-gray-400" />}
                         </div>
                         <div>
@@ -400,11 +334,6 @@ export default function RoomsPage() {
                         </div>
                       </div>
                     </td>
-                    {/* <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-700">
-                        <FiMapPin className="w-4 h-4 mr-1 text-gray-400" />
-                        {room.location}
-                      </div> */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       <div className="flex items-center"><FiMapPin className="w-4 h-4 mr-1 text-gray-400" />{room.location}</div>
                     </td>
@@ -431,10 +360,6 @@ export default function RoomsPage() {
                         <div>
                           <div className="text-sm font-medium text-gray-900">{room.owner.name}</div>
                           {room.owner.contact && (
-                            // <div className="text-xs text-gray-500 flex items-center">
-                            //   <FiMail className="w-3 h-3 mr-1" />
-                            //   {room.owner.contact}
-                            // </div>
                             <div className="text-xs text-gray-500 flex items-center"><FiMail className="w-3 h-3 mr-1" />{room.owner.contact}</div>
                           )}
                         </div>
@@ -442,22 +367,9 @@ export default function RoomsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-3">
-                        {/* <button
-                          className="text-blue-600 hover:text-blue-900 transition-all hover:underline flex items-center gap-1"
-                          onClick={() => handleEditClick(room)}
-                        >
-                          <FiEdit className="w-4 h-4" />
-                          Edit */}
                         <button className="text-blue-600 hover:text-blue-900 transition-all hover:underline flex items-center gap-1" onClick={() => handleEditClick(room)}>
                           <FiEdit className="w-4 h-4" />Edit  
                         </button>
-
-                        {/* <button
-                          className="text-red-600 hover:text-red-900 transition-all hover:underline flex items-center gap-1"
-                          onClick={() => handleDeleteClick(room.id, room.title)}
-                        >
-                          <FiTrash2 className="w-4 h-4" />
-                          Delete */}
                         <button className="text-red-600 hover:text-red-900 transition-all hover:underline flex items-center gap-1" onClick={() => handleDeleteClick(room.id, room.title)}>
                           <FiTrash2 className="w-4 h-4" />Delete
                         </button>
@@ -507,18 +419,6 @@ export default function RoomsPage() {
 
                 {/* Description */}
                 <div>
-                  {/* <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    required
-                    rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="Enter room description"
-                  /> */}
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                   <textarea name="description" value={formData.description} onChange={handleInputChange} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                 </div>
@@ -526,57 +426,19 @@ export default function RoomsPage() {
                 {/* Location and Price */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    {/* <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Location
-                    </label> */}
                     <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
                     <div className="relative">
-                      {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FiMapPin className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="location"
-                        value={formData.location}
-                        onChange={handleInputChange}
-                        required
-                        className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none"
-                      > */}
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiMapPin className="h-5 w-5 text-gray-400" /></div>
                       <select name="location" value={formData.location} onChange={handleInputChange} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg">
                         <option value="">Select Location</option>
-                        {/* {locations.map((loc) => (
-                          <option key={loc} value={loc}>
-                            {loc}
-                          </option>
-                        ))} */}
                         {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
                       </select>
                     </div>
                   </div>
 
                   <div>
-                    {/* <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Price (per month)
-                    </label> */}
                     <label className="block text-sm font-medium text-gray-700 mb-2">Price (per month)</label>
                     <div className="relative">
-                      {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FiDollarSign className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="number"
-                        name="price"
-                        value={formData.price}
-                        onChange={handleInputChange}
-                        required
-                        min="0"
-                        step="50"
-                        className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter price"
-                      />
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                        <span className="text-gray-500">/mo</span>
-                      </div> */}
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiDollarSign className="h-5 w-5 text-gray-400" /></div>
                       <input type="number" name="price" value={formData.price} onChange={handleInputChange} required min="0" step="50" className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg" />
                     </div>
@@ -605,45 +467,16 @@ export default function RoomsPage() {
                   <h4 className="text-md font-medium text-gray-900">Owner Information</h4>
                   
                   <div>
-                    {/* <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Owner Name
-                    </label> */}
                     <label className="block text-sm font-medium text-gray-700 mb-2">Owner Name</label>
                     <div className="relative">
-                      {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FiUser className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="owner.name"
-                        value={formData.owner.name}
-                        onChange={handleInputChange}
-                        required
-                        className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter owner name"
-                      /> */}
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiUser className="h-5 w-5 text-gray-400" /></div>
                       <input type="text" name="owner.name" value={formData.owner.name} onChange={handleInputChange} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg" />
                     </div>
                   </div>
 
                   <div>
-                    {/* <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact Email
-                    </label> */}
                     <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
                     <div className="relative">
-                      {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FiMail className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="email"
-                        name="owner.contact"
-                        value={formData.owner.contact}
-                        onChange={handleInputChange}
-                        className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter contact email"
-                      /> */}
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiMail className="h-5 w-5 text-gray-400" /></div>
                       <input type="email" name="owner.contact" value={formData.owner.contact} onChange={handleInputChange} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg" />
                     </div>
@@ -652,22 +485,8 @@ export default function RoomsPage() {
 
                 {/* Image URL */}
                 <div>
-                  {/* <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Image URL
-                  </label> */}
                   <label className="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
                   <div className="relative">
-                    {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FiCamera className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      name="image"
-                      value={formData.image}
-                      onChange={handleInputChange}
-                      className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      placeholder="Enter image URL"
-                    /> */}
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FiCamera className="h-5 w-5 text-gray-400" /></div>
                     <input type="text" name="image" value={formData.image} onChange={handleInputChange} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg" />
                   </div>
@@ -676,30 +495,6 @@ export default function RoomsPage() {
 
               {/* Modal Footer */}
               <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
-                {/* <button
-                  type="button"
-                  onClick={cancelEdit}
-                  disabled={isEditing}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isEditing}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isEditing ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )} */}
                   <button type="button" onClick={cancelEdit} disabled={isEditing} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg">Cancel</button>
                 <button type="submit" disabled={isEditing} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2">
                   {isEditing ? "Saving..." : "Save Changes"}
@@ -737,29 +532,6 @@ export default function RoomsPage() {
 
             {/* Modal Footer */}
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
-              {/* <button
-                onClick={cancelDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isDeleting ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )} */}
                 <button onClick={cancelDelete} disabled={isDeleting} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg">Cancel</button>
               <button onClick={confirmDelete} disabled={isDeleting} className="px-4 py-2 bg-red-600 text-white rounded-lg">
                 {isDeleting ? "Deleting..." : "Delete"}

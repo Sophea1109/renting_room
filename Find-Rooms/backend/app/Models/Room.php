@@ -13,7 +13,12 @@ class Room extends Model
 
     protected $fillable = [
         'owner_id',
+        'owner_name',
+        'contact_email',
         'name',
+        'location',
+        'description',
+        'image_url',
         'monthly_rent',
         'occupancy_status',
         'payment_status',

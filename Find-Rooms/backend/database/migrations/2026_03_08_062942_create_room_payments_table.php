@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('room_payments', function (Blueprint $table) {
             $table->id();
             //delete data if room delete
-            $table->foreignId('room_id')->constrained('rooms')->cascadeOnDelete();
-            $table->foreignId('owner_id')->nullable()->constrained('users')->nullOnDelete();
+            // $table->foreignId('room_id')->constrained('rooms')->cascadeOnDelete();
+            // $table->foreignId('owner_id')->nullable()->constrained('users')->nullOnDelete();
             $table->decimal('amount', 10, 2);
             $table->date('paid_at');
             $table->timestamps();
