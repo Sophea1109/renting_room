@@ -4,11 +4,6 @@ import { useRouter } from 'next/navigation'
 export default function RoomCard({ room }) {
   const router = useRouter()
 
-  const handleRequestRoommate = () => {
-    // Redirect to the form to request a roommate
-    router.push('/request-roommate')
-  }
-
   const handleViewRoom = () => {
     // Redirect to room detail page (you can adjust the route as needed)
     router.push(`/dashboard/user/rooms/${room.id}`)
@@ -62,7 +57,7 @@ export default function RoomCard({ room }) {
         <div className="mt-auto flex gap-2">
           <button
             onClick={handleViewRoom}
-            className="flex-1 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition"
+           className="flex-1 px-4 py-2 bg-[#8EB69B] text-white font-semibold rounded-lg hover:bg-[#7aa88c] transition"
           >
             View
           </button>

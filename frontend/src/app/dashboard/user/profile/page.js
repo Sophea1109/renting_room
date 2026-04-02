@@ -118,7 +118,7 @@ export default function ProfilePage() {
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-4 right-1/2 translate-x-1/2 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-3 rounded-full shadow-lg hover:scale-105 transition-transform"
+                className="absolute bottom-4 right-1/2 translate-x-1/2 bg-[#8EB69B] text-white p-3 rounded-full shadow-lg hover:scale-105 hover:bg-[#7aa88c] transition-all"
               >
                 <Edit2 size={20} />
               </button>
@@ -198,7 +198,7 @@ export default function ProfilePage() {
                 <button
                   onClick={handleProfileUpdate}
                   disabled={isSaving}
-                  className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:scale-[1.02] transition-transform disabled:opacity-50"
+                className="w-full py-4 px-6 bg-[#8EB69B] text-white rounded-xl font-semibold hover:scale-[1.02] hover:bg-[#7aa88c] transition-transform disabled:opacity-50"
                 >
                   {isSaving ? "Saving..." : "Save Changes"}
                 </button>

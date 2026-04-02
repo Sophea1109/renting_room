@@ -6,10 +6,12 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RoomCard from "@/components/RoomCard";
+import HotelCard from "@/components/HotelCard";
 import FeedbackCard from "@/components/FeedbackCard";
 
 // Data
 import { rooms } from "@/data/roomData";
+import { hotels as mockHotels } from "@/data/hotelData";
 import { listings as importedListings } from "@/data/listings";
 import { feedbacks as importedFeedbacks } from "@/data/feedbacks";
 
@@ -17,6 +19,7 @@ export default function HomePage() {
   // State for rooms, listings, and feedbacks
   const [roomListings, setRoomListings] = useState(importedListings);
   const [roomData, setRoomData] = useState(rooms);
+  const [hotelData, setHotelData] = useState(mockHotels);
   const [feedbacks, setFeedbacks] = useState(importedFeedbacks || []);
   const [userComment, setUserComment] = useState("");
 
@@ -40,7 +43,7 @@ export default function HomePage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 text-center bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500">
+     <section className="pt-32 pb-20 text-center bg-gradient-to-r from-[#0B2B26] via-[#235347] to-[#DAF1DE]">
         <h1 className="text-4xl md:text-6xl font-extrabold text-white drop-shadow-lg">
           Find Your Perfect Roommate
         </h1>
@@ -57,6 +60,18 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {roomData.map((room) => (
             <RoomCard key={room.id} room={room} />
+          ))}
+        </div>
+      </section>
+
+      {/* Featured Hotels */}
+      <section className="max-w-7xl mx-auto px-4 py-16 space-y-12">
+        <h2 className="text-3xl font-bold text-gray-800 dark:text-white text-center">
+          Featured Hotels
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+          {hotelData.slice(0, 3).map((hotel) => (
+            <HotelCard key={hotel.id} hotel={hotel} />
           ))}
         </div>
       </section>
@@ -81,7 +96,7 @@ export default function HomePage() {
           />
           <button
             type="submit"
-            className="px-6 py-2 bg-yellow-400 text-white rounded-lg hover:bg-yellow-500 transition"
+           className="px-6 py-2 bg-[#0B2B26] text-white rounded-lg hover:bg-[#0a2f30] transition"
           >
             Submit
           </button>

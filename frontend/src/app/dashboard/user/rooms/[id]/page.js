@@ -10,6 +10,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import Footer from '@/components/Footer'
 import Header from '@/components/Header'
+import PaymentModal from '@/components/PaymentModal'
 
 // Fix default marker issue with Next.js + Leaflet
 delete L.Icon.Default.prototype._getIconUrl
@@ -23,12 +24,40 @@ export default function RoomDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [room, setRoom] = useState(null)
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [totalPrice, setTotalPrice] = useState(0)
+  const [months, setMonths] = useState(0)
 
   useEffect(() => {
     if (!params?.id) return
     const foundRoom = rooms.find(r => r.id === parseInt(params.id, 10))
     setRoom(foundRoom || null)
+    if (foundRoom) {
+      setTotalPrice(parseInt(foundRoom.price.replace(/\D/g, ''), 10))
+    }
   }, [params])
+
+  useEffect(() => {
+    if (startDate && endDate && room) {
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      
+      const years = end.getFullYear() - start.getFullYear()
+      const monthsDiff = (years * 12) + (end.getMonth() - start.getMonth())
+      
+      const basePrice = parseInt(room.price.replace(/\D/g, ''), 10)
+      
+      if (monthsDiff > 0) {
+        setMonths(monthsDiff)
+        setTotalPrice(basePrice * monthsDiff)
+      } else {
+        setMonths(1)
+        setTotalPrice(basePrice)
+      }
+    }
+  }, [startDate, endDate, room])
 
   if (!room) return (
     <div className="min-h-screen">
@@ -80,7 +109,7 @@ export default function RoomDetailPage() {
               <p className="mt-4 text-gray-700 dark:text-gray-300">{room.description}</p>
 
               {/* Map Section */}
-              {room.coordinates && (
+              {room.coordinates && !isPaymentOpen && (
                 <div className="mt-6 h-80 w-full rounded-2xl overflow-hidden">
                   <MapContainer
                     center={[room.coordinates.lat, room.coordinates.lng]}
@@ -116,11 +145,48 @@ export default function RoomDetailPage() {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => router.push(`/request-roommate?room=${room.id}`)}
+
+              <div className="grid grid-cols-1 gap-4 mb-6">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Move-in Date</label>
+                  <input 
+                    type="date" 
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Move-out Date</label>
+                  <input 
+                    type="date" 
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
+                  <span>Price per month</span>
+                  <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{room.price}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
+                  <span>Total months</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{months || 1} {months > 1 ? 'Months' : 'Month'}</span>
+                </div>
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                  <span className="font-bold text-gray-900 dark:text-white">Total</span>
+                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">${totalPrice}</span>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsPaymentOpen(true)}
                 className="w-full px-4 py-3 bg-emerald-500 text-white rounded-lg mb-2 hover:bg-emerald-600 transition"
               >
-                Request Roommate
+                Rent Now
               </button>
               <button className="w-full px-4 py-3 bg-white/80 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-emerald-500 hover:bg-white transition">
                 Message Owner
@@ -131,6 +197,15 @@ export default function RoomDetailPage() {
       </div>
 
       <Footer />
+
+      <PaymentModal 
+        isOpen={isPaymentOpen} 
+        onClose={() => setIsPaymentOpen(false)} 
+        item={room} 
+        type="room" 
+        dates={{ startDate, endDate }}
+        totalPrice={`$${totalPrice}`}
+      />
     </div>
   )
 }
