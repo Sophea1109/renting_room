@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
 class OwnerDashboardController extends Controller
-{
+{ //image
     public function index(Request $request): JsonResponse
     {
         $ownerId = $request->query('owner_id');
@@ -71,7 +71,6 @@ class OwnerDashboardController extends Controller
                     'description'     => $room->description,
                     'location'        => $room->location,
                     'contactEmail'    => $room->contact_email,
-                    'image'           => $room->image,
                     'amenities'       => $room->amenities ?? [],
                     'images'          => $room->images ?? [],
                     'occupancyStatus' => $room->occupancy_status,
@@ -95,7 +94,6 @@ class OwnerDashboardController extends Controller
             'description'      => 'nullable|string',
             'location'         => 'nullable|string',
             'contact_email'    => 'nullable|email',
-            'image'            => 'nullable|string',
             'amenities'        => 'nullable|array',
             'amenities.*'      => 'string',
             'images'           => 'nullable|array',
@@ -120,7 +118,6 @@ class OwnerDashboardController extends Controller
                 'description'     => $room->description,
                 'location'        => $room->location,
                 'contactEmail'    => $room->contact_email,
-                'image'           => $room->image,
                 'amenities'       => $room->amenities ?? [],
                 'images'          => $room->images ?? [],
                 'occupancyStatus' => $room->occupancy_status,
@@ -142,7 +139,6 @@ class OwnerDashboardController extends Controller
             'description'   => 'nullable|string',
             'location'      => 'nullable|string',
             'contact_email' => 'nullable|email',
-            'image'         => 'nullable|string',
             'amenities'     => 'nullable|array',
             'amenities.*'   => 'string',
             'images'        => 'nullable|array',
@@ -165,7 +161,6 @@ class OwnerDashboardController extends Controller
                 'description'     => $room->description,
                 'location'        => $room->location,
                 'contactEmail'    => $room->contact_email,
-                'image'           => $room->image,
                 'amenities'       => $room->amenities ?? [],
                 'images'          => $room->images ?? [],
                 'occupancyStatus' => $room->occupancy_status,
