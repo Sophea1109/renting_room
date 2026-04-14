@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Home, BedDouble, BedSingle, DollarSign, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useUser } from '@/context/UserContext';
+import { Home, Building, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -16,42 +17,34 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
-  AreaChart,
-  Area,
 } from 'recharts';
-import {
-  ownerPayments,
-  ownerRooms,
-  weeklyOccupancySnapshots,
-} from '@/data/ownerDashboardData';
-import {
-  buildMonthlyRevenueSeries,
-  calculateDashboardMetrics,
-  formatCurrency,
-} from '@/lib/ownerDashboardMetrics';
-import { fetchOwnerDashboard } from '@/lib/ownerDashboardApi';
 
 // Sortable wrapper
 function SortableCard({ item, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 1,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
   return (
     <div
       ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 50 : 1,
-        opacity: isDragging ? 0.6 : 1,
-      }}
+      style={style}
       {...attributes}
       {...listeners}
       className="cursor-grab active:cursor-grabbing"
@@ -60,111 +53,107 @@ function SortableCard({ item, children }) {
     </div>
   );
 }
-const fallbackMetrics = calculateDashboardMetrics(ownerRooms, ownerPayments);
-const fallbackData = {
-  cards: {
-    totalRevenue: fallbackMetrics.totalRevenue,
-    totalRooms: fallbackMetrics.totalRooms,
-    occupiedRooms: fallbackMetrics.occupiedRooms,
-    availableRooms: fallbackMetrics.availableRooms,
-  },
-  performanceSummary: {
-    averageMonthlyGrowth: 0,
-    occupancyRate: fallbackMetrics.occupancyRate,
-  },
-  charts: {
-    monthlyRevenue: buildMonthlyRevenueSeries(ownerPayments),
-    weeklyOccupancy: weeklyOccupancySnapshots,
-  },
-};
 
 export default function DashboardOverview() {
-  const [dashboardData, setDashboardData] = useState(fallbackData);
-  const [errorMessage, setErrorMessage] = useState('');
+  const { user } = useUser();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const loadDashboard = useCallback(async () => {
-    setErrorMessage('');
+  // chart data from API
+  const [revenueData, setRevenueData] = useState([]);
+  const [occupancyData, setOccupancyData] = useState([]);
 
-  try {
-      const data = await fetchOwnerDashboard();
-      setDashboardData((previous) => ({
-        ...previous,
-        ...data,
-        charts: {
-          ...previous.charts,
-          ...data.charts,
-          weeklyOccupancy:
-            data.charts?.weeklyOccupancy || previous.charts?.weeklyOccupancy || weeklyOccupancySnapshots,
-        },
-      }));
-    } catch {
-      setErrorMessage('Using fallback data. Start backend API and run migrations to load live metrics.');
-    }
-  }, []);
+  // performance summary from API
+  const [performance, setPerformance] = useState({
+    averageMonthlyGrowth: 0,
+    occupancyRate: 0,
+    occupiedRooms: 0,
+    totalRooms: 0,
+  });
+
+  // stats cards (kept in state for DnD reordering)
+  const [stats, setStats] = useState([]);
 
   useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+    if (!user) return;
 
-  const statsSeed = useMemo(
-    () => [
-      {
-        id: 'revenue',
-        title: 'Total Revenue',
-        value: formatCurrency(dashboardData.cards.totalRevenue || 0),
-        icon: DollarSign,
-        color: 'text-amber-600',
-        bg: 'bg-amber-100',
-      },
-      {
-        id: 'rooms',
-        title: 'Total Rooms',
-        value: dashboardData.cards.totalRooms || 0,
-        icon: Home,
-        color: 'text-blue-600',
-        bg: 'bg-blue-100',
-      },
-      {
-        id: 'occupied',
-        title: 'Occupied Rooms',
-        value: dashboardData.cards.occupiedRooms || 0,
-        icon: BedDouble,
-        color: 'text-purple-600',
-        bg: 'bg-purple-100',
-      },
-      {
-        id: 'available',
-        title: 'Available Rooms',
-        value: dashboardData.cards.availableRooms || 0,
-        icon: BedSingle,
-        color: 'text-green-600',
-        bg: 'bg-green-100',
-      },
-    ],
-    [dashboardData.cards]
-  );
+    setLoading(true);
+    fetch(`http://localhost:8000/api/owner/dashboard?owner_id=${user.id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch dashboard data');
+        return res.json();
+      })
+      .then((data) => {
+        // build stats cards from API
+        setStats([
+          {
+            id: 'totalRooms',
+            title: 'Total Rooms',
+            value: data.cards.totalRooms,
+            icon: Home,
+            color: 'text-blue-600',
+            bg: 'bg-blue-100',
+          },
+          {
+            id: 'totalRevenue',
+            title: 'Total Revenue',
+            value: `$${data.cards.totalRevenue.toLocaleString()}`,
+            icon: DollarSign,
+            color: 'text-green-600',
+            bg: 'bg-green-100',
+          },
+          {
+            id: 'occupiedRooms',
+            title: 'Occupied Rooms',
+            value: data.cards.occupiedRooms,
+            icon: Building,
+            color: 'text-purple-600',
+            bg: 'bg-purple-100',
+          },
+          {
+            id: 'availableRooms',
+            title: 'Available Rooms',
+            value: data.cards.availableRooms,
+            icon: Home,
+            color: 'text-amber-600',
+            bg: 'bg-amber-100',
+          },
+        ]);
 
-  const [stats, setStats] = useState(statsSeed);
+        // revenue chart — directly from API
+        setRevenueData(data.charts.monthlyRevenue);
 
-  useEffect(() => {
-    setStats((previous) => {
-      const order = previous.map((item) => item.id);
-      const byId = Object.fromEntries(statsSeed.map((item) => [item.id, item]));
-      return order.map((id) => byId[id]).filter(Boolean);
-    });
-  }, [statsSeed]);
+        // occupancy breakdown — occupied vs available
+        setOccupancyData([
+          { name: 'Occupied', rooms: data.cards.occupiedRooms },
+          { name: 'Available', rooms: data.cards.availableRooms },
+        ]);
 
-  // sensors
+        // performance summary
+        setPerformance({
+          averageMonthlyGrowth: data.performanceSummary.averageMonthlyGrowth,
+          occupancyRate: data.performanceSummary.occupancyRate,
+          occupiedRooms: data.cards.occupiedRooms,
+          totalRooms: data.cards.totalRooms,
+        });
+
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [user]);
+
+  // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 4 },
     })
   );
 
-  // reorder logic
   function handleDragEnd(event) {
     const { active, over } = event;
-
     if (!over || active.id === over.id) return;
 
     const oldIndex = stats.findIndex((i) => i.id === active.id);
@@ -177,6 +166,24 @@ export default function DashboardOverview() {
     setStats(updated);
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        Loading dashboard...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64 text-red-500">
+        {error}
+      </div>
+    );
+  }
+
+  const growthPositive = performance.averageMonthlyGrowth >= 0;
+
   return (
     <div className="space-y-8">
       <div>
@@ -184,12 +191,7 @@ export default function DashboardOverview() {
         <p className="text-gray-600 text-sm">Drag cards to reorder</p>
       </div>
 
-      {errorMessage ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-          {errorMessage}
-        </div>
-      ) : null}
-
+      {/* Stats Cards */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -216,26 +218,33 @@ export default function DashboardOverview() {
         </SortableContext>
       </DndContext>
 
-      {/* Graph Section */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Trend Chart */}
+
+        {/* Revenue Trend — real monthly data from API */}
         <div className="bg-white p-6 rounded-xl shadow">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-800">Revenue Trend</h3>
-              <p className="text-gray-500 text-sm">Monthly revenue over time</p>
+              <p className="text-gray-500 text-sm">Monthly revenue (last 6 months)</p>
             </div>
-            <div className="flex items-center gap-2 text-green-600">
-              <TrendingUp size={20} />
-              <span className="font-medium">Owner income</span>
+            <div className={`flex items-center gap-2 ${growthPositive ? 'text-green-600' : 'text-red-500'}`}>
+              {growthPositive ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+              <span className="font-medium">
+                {growthPositive ? '+' : ''}{performance.averageMonthlyGrowth}%
+              </span>
             </div>
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dashboardData.charts.monthlyRevenue || []}>
+              <AreaChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
-                <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(value) => `$${value}`} />
+                <YAxis
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickFormatter={(value) => `$${value}`}
+                />
                 <Tooltip
                   formatter={(value) => [`$${value}`, 'Revenue']}
                   labelFormatter={(label) => `Month: ${label}`}
@@ -245,85 +254,82 @@ export default function DashboardOverview() {
                     borderRadius: '0.5rem',
                   }}
                 />
-                <Area type="monotone" dataKey="revenue" stroke="#f59e0b" fill="#fef3c7" strokeWidth={2} />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#f59e0b"
+                  fill="#fef3c7"
+                  strokeWidth={2}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Occupancy Chart */}
+        {/* Occupancy Breakdown — real occupied/available from API */}
         <div className="bg-white p-6 rounded-xl shadow">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">Weekly Occupancy</h3>
-              <p className="text-gray-500 text-sm">Room occupancy this week</p>
+              <h3 className="text-lg font-semibold text-gray-800">Occupancy Breakdown</h3>
+              <p className="text-gray-500 text-sm">Current room occupancy status</p>
             </div>
             <div className="text-sm text-gray-500">
               <span className="font-medium text-purple-600">
-                {dashboardData.cards.occupiedRooms} occupied
-              </span>{' '}
-              / <span className="text-gray-600">{dashboardData.cards.totalRooms} total</span>
+                {performance.occupiedRooms} occupied
+              </span>
+              {' '}/{' '}
+              <span className="text-gray-600">{performance.totalRooms} total</span>
             </div>
           </div>
           <div className="h-72">
-            {/*  */}
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={dashboardData.charts.weeklyOccupancy || weeklyOccupancySnapshots}>
+              <BarChart data={occupancyData} barCategoryGap="40%">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="day" stroke="#6b7280" fontSize={12} />
-                <YAxis stroke="#6b7280" fontSize={12} domain={[0, dashboardData.cards.totalRooms || 1]} />
+                <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
+                <YAxis
+                  stroke="#6b7280"
+                  fontSize={12}
+                  allowDecimals={false}
+                  domain={[0, performance.totalRooms || 'auto']}
+                />
                 <Tooltip
+                  formatter={(value) => [value, 'Rooms']}
                   contentStyle={{
                     backgroundColor: 'white',
                     border: '1px solid #e5e7eb',
                     borderRadius: '0.5rem',
                   }}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="occupied"
-                  name="Occupied Rooms"
-                  stroke="#8b5cf6"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
+                <Legend />
+                <Bar
+                  dataKey="rooms"
+                  name="Rooms"
+                  radius={[6, 6, 0, 0]}
+                  fill="#8b5cf6"
                 />
-                <Line
-                  type="monotone"
-                  dataKey="available"
-                  name="Available Rooms"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ r: 4 }}
-                />
-                <Line type="monotone" dataKey="occupied" name="Occupied Rooms" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="available" name="Available Rooms" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} />
-              </LineChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
-          {/*  */}
         </div>
+
       </div>
 
-      {/* Key Metrics Summary */}
+      {/* Performance Summary */}
       <div className="bg-white p-6 rounded-xl shadow">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Performance Summary</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-600 font-medium">Avg. Monthly Growth</p>
             <p className="text-2xl font-bold text-gray-800">
-              {dashboardData.performanceSummary.averageMonthlyGrowth?.toFixed(1)}%
+              {growthPositive ? '+' : ''}{performance.averageMonthlyGrowth}%
             </p>
-            <p className="text-xs text-gray-500">Average of month-over-month revenue changes</p>
+            <p className="text-xs text-gray-500">Based on last 6 months</p>
           </div>
           <div className="p-4 bg-green-50 rounded-lg">
             <p className="text-sm text-green-600 font-medium">Occupancy Rate</p>
-            <p className="text-2xl font-bold text-gray-800">
-              {dashboardData.performanceSummary.occupancyRate?.toFixed(1)}%
-            </p>
+            <p className="text-2xl font-bold text-gray-800">{performance.occupancyRate}%</p>
             <p className="text-xs text-gray-500">
-              {dashboardData.cards.occupiedRooms} of {dashboardData.cards.totalRooms} rooms occupied
+              {performance.occupiedRooms} of {performance.totalRooms} rooms occupied
             </p>
           </div>
         </div>

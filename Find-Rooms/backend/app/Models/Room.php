@@ -13,24 +13,33 @@ class Room extends Model
 
     protected $fillable = [
         'owner_id',
-        'owner_name',
-        'contact_email',
+        'room_number',
         'name',
-        'location',
-        'description',
-        'image_url',
+        'type',
         'monthly_rent',
+        'beds',
+        'baths',
+        'size',
+        'description',
+        'location',
+        'contact_email',
+        'image',
+        'amenities',
+        'images',
         'occupancy_status',
         'payment_status',
     ];
 
-    //each room belong to different owner
+    protected $casts = [
+        'amenities' => 'array',
+        'images'    => 'array',
+    ];
+
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
     }
 
-    //one room = many payment
     public function payments(): HasMany
     {
         return $this->hasMany(RoomPayment::class);

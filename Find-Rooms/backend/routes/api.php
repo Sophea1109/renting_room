@@ -1,16 +1,13 @@
 <?php
 
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OwnerDashboardController;
+use App\Http\Controllers\AuthController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
-
-
-use App\Http\Controllers\AuthController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -22,6 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/owner/dashboard', [OwnerDashboardController::class, 'index']);
-Route::post('/owner/rooms', [OwnerDashboardController::class, 'createRoom']);
-Route::patch('/owner/rooms/{room}/status', [OwnerDashboardController::class, 'updateRoomStatus']);
-Route::delete('/owner/rooms/{room}', [OwnerDashboardController::class, 'deleteRoom']);
+Route::post('/owner/rooms', [OwnerDashboardController::class, 'store']);            // create room
+Route::patch('/owner/rooms/{room}', [OwnerDashboardController::class, 'update']);   // edit room details
+Route::patch('/owner/rooms/{room}/status', [OwnerDashboardController::class, 'updateRoomStatus']); // update status only
+Route::delete('/owner/rooms/{room}', [OwnerDashboardController::class, 'destroy']); // delete room
