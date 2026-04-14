@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import OwnerSidebar from '@/components/OwnerSidebar';
 import OwnerHeader from '@/components/OwnerHeader';
 import { createOwnerRoom } from '@/lib/ownerDashboardApi';
+import { useUser } from '@/context/UserContext';
 import {
   ArrowLeft,
   Save,
@@ -26,6 +27,7 @@ import {
 
 export default function CreateUpdateRoomPage({ params }) {
   const router = useRouter();
+  const { user } = useUser();
   const fileInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState('rooms');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -59,26 +61,26 @@ export default function CreateUpdateRoomPage({ params }) {
       Cleaning: 'available',
     };
 
-    const payload = {
-      name: formData.roomNumber || formData.name || 'Room',
-      monthly_rent: Number(formData.price || 0),
-      occupancy_status: statusToOccupancy[formData.status] || 'available',
-      payment_status: 'unpaid',
-      description: formData.description || null,
-      image_url: formData.images?.[0]?.url || null,
-    };
-
     try {
+      if (!user?.id) {
+        throw new Error('Owner account not found. Please login again.');
+      }
       const occupancyStatus = formData.status === 'Occupied' ? 'occupied' : 'available';
 
       await createOwnerRoom({
-        name: formData.roomNumber || formData.name || 'Room',
+        owner_id: user.id,
+        room_number: formData.roomNumber || null,
+        name: formData.name || formData.roomNumber || 'Room',
+        type: formData.type || 'Single',
         description: formData.description || '',
         location: 'Not specified',
-        owner_name: 'Owner',
-        contact_email: '',
-        image_url: formData.images?.[0]?.url || '',
+        contact_email: user?.email || '',
+        image: formData.images?.[0]?.url || '',
+        amenities: formData.amenities || [],
         monthly_rent: Number(formData.price || 0),
+        beds: Number(formData.beds || 1),
+        baths: Number(formData.baths || 1),
+        size: formData.size || null,
         occupancy_status: occupancyStatus,
         payment_status: 'unpaid',
       });

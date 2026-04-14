@@ -7,6 +7,7 @@ use App\Models\RoomPayment;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class OwnerDashboardController extends Controller
 {
@@ -14,16 +15,25 @@ class OwnerDashboardController extends Controller
     {
         $ownerId = $request->query('owner_id');
 
-        $roomsQuery = Room::query();
-        $paymentsQuery = RoomPayment::query();
+        $rooms = collect();
+        $payments = collect();
 
-        if ($ownerId) {
-            $roomsQuery->where('owner_id', $ownerId);
-            $paymentsQuery->where('owner_id', $ownerId);
+        if (Schema::hasTable('rooms')) {
+            $roomsQuery = Room::query();
+            if ($ownerId) {
+                $roomsQuery->where('owner_id', $ownerId);
+            }
+            $rooms = $roomsQuery->orderBy('id')->get();
         }
 
-        $rooms = $roomsQuery->orderBy('id')->get();
-        $payments = $paymentsQuery->get();
+        if (Schema::hasTable('room_payments')) {
+            $paymentsHasOwnerId = Schema::hasColumn('room_payments', 'owner_id');
+            $paymentsQuery = RoomPayment::query();
+            if ($ownerId && $paymentsHasOwnerId) {
+                $paymentsQuery->where('owner_id', $ownerId);
+            }
+            $payments = $paymentsQuery->get();
+        }
 
         $totalRooms = $rooms->count();
         $occupiedRooms = $rooms->where('occupancy_status', 'occupied')->count();
@@ -198,12 +208,19 @@ class OwnerDashboardController extends Controller
             && $previousPaymentStatus !== 'paid'
             && $validated['payment_status'] === 'paid'
         ) {
-            RoomPayment::create([
-                'room_id'  => $room->id,
-                'owner_id' => $room->owner_id,
+             $paymentPayload = [
                 'amount'   => $room->monthly_rent,
                 'paid_at'  => $validated['paid_at'] ?? Carbon::today()->toDateString(),
-            ]);
+            ];
+             if (Schema::hasTable('room_payments') && Schema::hasColumn('room_payments', 'room_id')) {
+                $paymentPayload['room_id'] = $room->id;
+            }
+
+            if (Schema::hasTable('room_payments') && Schema::hasColumn('room_payments', 'owner_id')) {
+                $paymentPayload['owner_id'] = $room->owner_id;
+            }
+
+            RoomPayment::create($paymentPayload);
         }
 
         return response()->json([

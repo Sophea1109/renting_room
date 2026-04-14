@@ -28,6 +28,135 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { fetchOwnerDashboard } from '@/lib/ownerDashboardApi';
+import { ownerRooms, ownerPayments } from '@/data/ownerDashboardData';
+
+function buildFallbackDashboardData() {
+  const now = new Date();
+  const monthlyRevenue = Array.from({ length: 6 }, (_, index) => {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const monthLabel = monthDate.toLocaleString('en-US', { month: 'short' });
+    const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+    const revenue = ownerPayments
+      .filter((payment) => payment.paidAt.startsWith(monthKey) && payment.status === 'paid')
+      .reduce((sum, payment) => sum + payment.amount, 0);
+
+    return {
+      month: monthLabel,
+      revenue,
+    };
+  });
+
+  const totalRevenue = ownerPayments
+    .filter((payment) => payment.status === 'paid')
+    .reduce((sum, payment) => sum + payment.amount, 0);
+
+  const totalRooms = ownerRooms.length;
+  const occupiedRooms = ownerRooms.filter((room) => room.status === 'occupied').length;
+  const availableRooms = totalRooms - occupiedRooms;
+
+  const recentRevenues = monthlyRevenue.map((entry) => entry.revenue).filter((value) => value > 0);
+  const growth = recentRevenues.length >= 2
+    ? Math.round(((recentRevenues[recentRevenues.length - 1] - recentRevenues[0]) / recentRevenues[0]) * 100)
+    : 0;
+
+  const occupancyRate = totalRooms ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+
+  return {
+    cards: {
+      totalRooms,
+      totalRevenue,
+      occupiedRooms,
+      availableRooms,
+    },
+    charts: {
+      monthlyRevenue,
+    },
+    performanceSummary: {
+      averageMonthlyGrowth: Number.isFinite(growth) ? growth : 0,
+      occupancyRate,
+    },
+  };
+}
+
+function mapDashboardToUi(data) {
+  return {
+    stats: [
+      {
+        id: 'totalRooms',
+        title: 'Total Rooms',
+        value: data.cards.totalRooms,
+        icon: Home,
+        color: 'text-blue-600',
+        bg: 'bg-blue-100',
+      },
+      {
+        id: 'totalRevenue',
+        title: 'Total Revenue',
+        value: `$${data.cards.totalRevenue.toLocaleString()}`,
+        icon: DollarSign,
+        color: 'text-green-600',
+        bg: 'bg-green-100',
+      },
+      {
+        id: 'occupiedRooms',
+        title: 'Occupied Rooms',
+        value: data.cards.occupiedRooms,
+        icon: Building,
+        color: 'text-purple-600',
+        bg: 'bg-purple-100',
+      },
+      {
+        id: 'availableRooms',
+        title: 'Available Rooms',
+        value: data.cards.availableRooms,
+        icon: Home,
+        color: 'text-amber-600',
+        bg: 'bg-amber-100',
+      },
+    ],
+    revenueData: data.charts.monthlyRevenue,
+    occupancyData: [
+      { name: 'Occupied', rooms: data.cards.occupiedRooms },
+      { name: 'Available', rooms: data.cards.availableRooms },
+    ],
+    performance: {
+      averageMonthlyGrowth: data.performanceSummary.averageMonthlyGrowth,
+      occupancyRate: data.performanceSummary.occupancyRate,
+      occupiedRooms: data.cards.occupiedRooms,
+      totalRooms: data.cards.totalRooms,
+    },
+  };
+}
+
+function normalizeDashboardData(data) {
+  const fallback = buildFallbackDashboardData();
+  const cards = data?.cards || {};
+  const performanceSummary = data?.performanceSummary || {};
+  const monthlyRevenue = data?.charts?.monthlyRevenue;
+
+  return {
+    cards: {
+      totalRooms: Number.isFinite(cards.totalRooms) ? cards.totalRooms : fallback.cards.totalRooms,
+      totalRevenue: Number.isFinite(cards.totalRevenue) ? cards.totalRevenue : fallback.cards.totalRevenue,
+      occupiedRooms: Number.isFinite(cards.occupiedRooms) ? cards.occupiedRooms : fallback.cards.occupiedRooms,
+      availableRooms: Number.isFinite(cards.availableRooms) ? cards.availableRooms : fallback.cards.availableRooms,
+    },
+    charts: {
+      monthlyRevenue: Array.isArray(monthlyRevenue) && monthlyRevenue.length > 0
+        ? monthlyRevenue
+        : fallback.charts.monthlyRevenue,
+    },
+    performanceSummary: {
+      averageMonthlyGrowth: Number.isFinite(performanceSummary.averageMonthlyGrowth)
+        ? performanceSummary.averageMonthlyGrowth
+        : fallback.performanceSummary.averageMonthlyGrowth,
+      occupancyRate: Number.isFinite(performanceSummary.occupancyRate)
+        ? performanceSummary.occupancyRate
+        : fallback.performanceSummary.occupancyRate,
+    },
+  };
+}
 
 // Sortable wrapper
 function SortableCard({ item, children }) {
@@ -56,93 +185,65 @@ function SortableCard({ item, children }) {
 
 export default function DashboardOverview() {
   const { user } = useUser();
-  const [loading, setLoading] = useState(true);
+  const initialUi = mapDashboardToUi(buildFallbackDashboardData());
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // chart data from API
-  const [revenueData, setRevenueData] = useState([]);
-  const [occupancyData, setOccupancyData] = useState([]);
+  const [revenueData, setRevenueData] = useState(initialUi.revenueData);
+  const [occupancyData, setOccupancyData] = useState(initialUi.occupancyData);
 
   // performance summary from API
   const [performance, setPerformance] = useState({
-    averageMonthlyGrowth: 0,
-    occupancyRate: 0,
-    occupiedRooms: 0,
-    totalRooms: 0,
+    averageMonthlyGrowth: initialUi.performance.averageMonthlyGrowth,
+    occupancyRate: initialUi.performance.occupancyRate,
+    occupiedRooms: initialUi.performance.occupiedRooms,
+    totalRooms: initialUi.performance.totalRooms,
   });
 
   // stats cards (kept in state for DnD reordering)
-  const [stats, setStats] = useState([]);
+  const [stats, setStats] = useState(initialUi.stats);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) return undefined;
 
-    setLoading(true);
-    fetch(`http://localhost:8000/api/owner/dashboard?owner_id=${user.id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch dashboard data');
-        return res.json();
-      })
-      .then((data) => {
-        // build stats cards from API
-        setStats([
-          {
-            id: 'totalRooms',
-            title: 'Total Rooms',
-            value: data.cards.totalRooms,
-            icon: Home,
-            color: 'text-blue-600',
-            bg: 'bg-blue-100',
-          },
-          {
-            id: 'totalRevenue',
-            title: 'Total Revenue',
-            value: `$${data.cards.totalRevenue.toLocaleString()}`,
-            icon: DollarSign,
-            color: 'text-green-600',
-            bg: 'bg-green-100',
-          },
-          {
-            id: 'occupiedRooms',
-            title: 'Occupied Rooms',
-            value: data.cards.occupiedRooms,
-            icon: Building,
-            color: 'text-purple-600',
-            bg: 'bg-purple-100',
-          },
-          {
-            id: 'availableRooms',
-            title: 'Available Rooms',
-            value: data.cards.availableRooms,
-            icon: Home,
-            color: 'text-amber-600',
-            bg: 'bg-amber-100',
-          },
-        ]);
+    let cancelled = false;
 
-        // revenue chart — directly from API
-        setRevenueData(data.charts.monthlyRevenue);
+    async function loadDashboard() {
+      setLoading(true);
+      setError(null);
 
-        // occupancy breakdown — occupied vs available
-        setOccupancyData([
-          { name: 'Occupied', rooms: data.cards.occupiedRooms },
-          { name: 'Available', rooms: data.cards.availableRooms },
-        ]);
+      try {
+        const data = await fetchOwnerDashboard(user.id);
+        if (cancelled) return;
 
-        // performance summary
-        setPerformance({
-          averageMonthlyGrowth: data.performanceSummary.averageMonthlyGrowth,
-          occupancyRate: data.performanceSummary.occupancyRate,
-          occupiedRooms: data.cards.occupiedRooms,
-          totalRooms: data.cards.totalRooms,
-        });
+        const mapped = mapDashboardToUi(normalizeDashboardData(data));
+        setStats(mapped.stats);
+        setRevenueData(mapped.revenueData);
+        setOccupancyData(mapped.occupancyData);
+        setPerformance(mapped.performance);
+      } catch (err) {
+        if (cancelled) return;
 
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+        const fallbackData = buildFallbackDashboardData();
+        const mapped = mapDashboardToUi(fallbackData);
+        setStats(mapped.stats);
+        setRevenueData(mapped.revenueData);
+        setOccupancyData(mapped.occupancyData);
+        setPerformance(mapped.performance);
+        setError(`Live dashboard service is unavailable (${err?.message || 'network error'}). Showing local fallback data.`);
+        console.error('Owner dashboard fetch failed:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   // DnD sensors
@@ -174,18 +275,15 @@ export default function DashboardOverview() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64 text-red-500">
-        {error}
-      </div>
-    );
-  }
-
   const growthPositive = performance.averageMonthlyGrowth >= 0;
 
   return (
     <div className="space-y-8">
+      {error && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-700">
+          {error}
+        </div>
+      )}
       <div>
         <h2 className="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
         <p className="text-gray-600 text-sm">Drag cards to reorder</p>
