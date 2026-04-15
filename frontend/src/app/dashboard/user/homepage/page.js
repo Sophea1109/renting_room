@@ -79,7 +79,7 @@ export default function HomePage() {
       </section>
 
       {/* Featured Hotels */}
-      <section className="max-w-7xl mx-auto px-4 py-16 space-y-12">
+      {/* <section className="max-w-7xl mx-auto px-4 py-16 space-y-12">
         <h2 className="text-3xl font-bold text-gray-800 dark:text-white text-center">
           Featured Hotels
         </h2>
@@ -88,7 +88,7 @@ export default function HomePage() {
             <HotelCard key={hotel.id} hotel={hotel} />
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* User Feedbacks */}
       <section className="max-w-7xl mx-auto px-4 py-16 space-y-8">
