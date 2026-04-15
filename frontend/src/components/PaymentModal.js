@@ -34,21 +34,24 @@ export default function PaymentModal({
   const handlePayment = async (e) => {
     e.preventDefault()
     setBookingError(null)
+
+    // Require dates before submitting
+    if (!startDate || !endDate) {
+      setBookingError('Please select move-in and move-out dates before paying.')
+      return
+    }
+
     setStep('processing')
 
     try {
-      // Submit booking to backend
-      if (roomId && startDate && endDate && totalAmount) {
-        await createBooking({
-          room_id:      roomId,
-          tenant_name:  name,
-          tenant_email: email,
-          start_date:   startDate,
-          end_date:     endDate,
-          total_amount: totalAmount,
-        })
-      }
-      // Show success after booking is created
+      await createBooking({
+        room_id:      roomId,
+        tenant_name:  name,
+        tenant_email: email,
+        start_date:   startDate,
+        end_date:     endDate,
+        total_amount: totalAmount || 0,
+      })
       setStep('success')
     } catch (err) {
       setBookingError(err.message || 'Booking failed. Please try again.')

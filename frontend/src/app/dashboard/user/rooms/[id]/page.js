@@ -193,7 +193,8 @@ export default function RoomDetailPage() {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                    style={{ colorScheme: 'light' }}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition cursor-pointer"
                   />
                 </div>
                 <div>
@@ -202,7 +203,8 @@ export default function RoomDetailPage() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                    style={{ colorScheme: 'light' }}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition cursor-pointer"
                   />
                 </div>
               </div>
@@ -225,9 +227,11 @@ export default function RoomDetailPage() {
 
               <button
                 onClick={() => setIsPaymentOpen(true)}
-                className="w-full px-4 py-3 bg-emerald-500 text-white rounded-lg mb-2 hover:bg-emerald-600 transition"
+                disabled={!startDate || !endDate}
+                className="w-full px-4 py-3 bg-emerald-500 text-white rounded-lg mb-2 hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!startDate || !endDate ? 'Please select move-in and move-out dates first' : ''}
               >
-                Rent Now
+                {!startDate || !endDate ? 'Select Dates to Rent' : 'Rent Now'}
               </button>
               <button className="w-full px-4 py-3 bg-white/80 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-emerald-500 hover:bg-white transition">
                 Message Owner
