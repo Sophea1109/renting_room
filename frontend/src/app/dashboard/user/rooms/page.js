@@ -32,7 +32,7 @@ export default function RoomsPage() {
       <Header />
 
       {/* Page Title */}
-      <section className="pt-32 pb-8 text-center bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500">
+     <section className="pt-32 pb-8 text-center bg-gradient-to-r from-[#0B2B26] via-[#235347] to-[#DAF1DE]">
         <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg">
           Browse Rooms
         </h1>

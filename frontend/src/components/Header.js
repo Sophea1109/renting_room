@@ -6,9 +6,9 @@ import { FiUser, FiMenu, FiX, FiSearch, FiBell, FiMessageCircle } from "react-ic
 import { useUser } from "@/context/UserContext";
 
 const navLinks = [
-  { name: "Home", href: "/dashboard/user/homepage" },
+  { name: "Home Page", href: "/dashboard/user/homepage" },
   { name: "Room", href: "/dashboard/user/rooms" },
-  { name: "Request Roommate", href: "/dashboard/user/request-roommate" },
+  { name: "Hotel", href: "/dashboard/user/hotel" },
 ];
 
 export default function Header() {
@@ -60,33 +60,34 @@ export default function Header() {
       }`}
       style={{
         background:
-          "linear-gradient(to right, rgba(59,130,246,0.3), rgba(99,102,241,0.3), rgba(139,92,246,0.3))",
-        backdropFilter: "blur(10px)",
+          "linear-gradient(to right, rgba(55, 128, 117, 0.64), rgba(16, 49, 41, 0.14), rgba(11, 43, 38, 0.58))",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(218, 241, 222, 0.1)",
       }}
     >
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between relative">
         <Link href="/dashboard/user/homepage">
-          <img src="/images/logo.png" alt="FindRoommate Logo" className="w-18 h-20 object-contain" />
+          <img src="/images/logo.png" alt="FindRoommate Logo" className="w-18 h-20 object-contain drop-shadow-md" />
         </Link>
 
         {/* Desktop Nav */}
         <div className="hidden md:flex flex-1 items-center justify-between mx-4 space-x-6">
           <div className="relative flex-1">
-            <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-500" />
+            <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-[#DAF1DE]/60" />
             <input
               type="text"
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-10 pr-4 py-2 rounded-full border border-[#DAF1DE]/20 bg-white/10 text-[#DAF1DE] placeholder-[#DAF1DE]/40 focus:outline-none focus:ring-2 focus:ring-[#DAF1DE]/50 backdrop-blur-sm transition"
             />
           </div>
 
-          <nav className="flex space-x-6 text-white items-center">
+          <nav className="flex space-x-6 text-[#DAF1DE] items-center">
             {navLinks.map((link) => (
-              <Link key={link.name} href={link.href} className="hover:text-yellow-300 relative group transition">
+              <Link key={link.name} href={link.href} className="hover:text-white relative group transition">
                 {link.name}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-300 transition-all group-hover:w-full"></span>
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#DAF1DE] transition-all group-hover:w-full"></span>
               </Link>
             ))}
 
@@ -94,9 +95,9 @@ export default function Header() {
               <>
                 {/* Message Icon */}
                 <Link href="/dashboard/user/messages" className="relative">
-                  <FiMessageCircle className="w-6 h-6 text-white hover:text-yellow-300" />
+                  <FiMessageCircle className="w-6 h-6 text-[#DAF1DE] hover:text-white transition-colors" />
                   {messagesCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">
                       {messagesCount}
                     </span>
                   )}
@@ -104,21 +105,21 @@ export default function Header() {
 
                 {/* Notification Icon */}
                 <div className="relative">
-                  <button onClick={() => setShowNotifications(!showNotifications)} className="relative">
-                    <FiBell className="w-6 h-6 text-white hover:text-yellow-300" />
+                  <button onClick={() => setShowNotifications(!showNotifications)} className="relative group">
+                    <FiBell className="w-6 h-6 text-[#DAF1DE] group-hover:text-white transition-colors" />
                     {notifications.length > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-sm">
                         {notifications.length}
                       </span>
                     )}
                   </button>
 
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-xl overflow-hidden z-50">
-                      <div className="p-4 border-b border-gray-100 font-semibold">Notifications</div>
-                      {notifications.length === 0 && <div className="p-4 text-gray-500 text-sm">No notifications</div>}
+                    <div className="absolute right-0 mt-2 w-64 bg-[#0B2B26] border border-[#DAF1DE]/20 shadow-2xl rounded-xl overflow-hidden z-50 backdrop-blur-xl">
+                      <div className="p-4 border-b border-[#DAF1DE]/10 font-semibold text-[#DAF1DE]">Notifications</div>
+                      {notifications.length === 0 && <div className="p-4 text-[#DAF1DE]/50 text-sm">No notifications</div>}
                       {notifications.map((note, i) => (
-                        <div key={i} className="p-3 border-b border-gray-100 text-sm hover:bg-gray-50 cursor-pointer">
+                        <div key={i} className="p-3 border-b border-[#DAF1DE]/5 text-sm text-[#DAF1DE]/80 hover:bg-[#235347]/30 cursor-pointer transition-colors">
                           {note.message}
                         </div>
                       ))}
@@ -131,19 +132,19 @@ export default function Header() {
         </div>
 
         {/* User Menu */}
-        <div className="flex items-center space-x-4 text-white relative">
+        <div className="flex items-center space-x-4 text-[#DAF1DE] relative">
           {user ? (
-            <Link href="/dashboard/user/profile" className="flex items-center space-x-2 hover:opacity-80 transition">
+            <Link href="/dashboard/user/profile" className="flex items-center space-x-2 hover:opacity-80 transition group">
               <img
                 src={avatarUrl}
                 alt={user.name || "User Avatar"}
-                className="w-8 h-8 rounded-full border border-gray-300 object-cover"
+                className="w-8 h-8 rounded-full border border-[#DAF1DE]/30 object-cover group-hover:border-[#DAF1DE]/60 transition-colors"
                 onError={(e) => (e.currentTarget.src = "/users/default-avatar.svg")}
               />
-              <span>{user.name || "Anonymous"}</span>
+              <span className="font-medium">{user.name || "Anonymous"}</span>
             </Link>
           ) : (
-            <Link href="/login" className="hidden md:flex items-center space-x-1 hover:text-yellow-300">
+            <Link href="/login" className="hidden md:flex items-center space-x-1 hover:text-white transition-colors">
               <FiUser className="w-6 h-6" />
               <span>Login</span>
             </Link>

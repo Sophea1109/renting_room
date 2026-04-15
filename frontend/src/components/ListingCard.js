@@ -5,18 +5,6 @@ import { useRouter } from 'next/navigation'
 export default function ListingCard({ room }) {
   const router = useRouter()
 
-  const handleRequestRoommate = () => {
-    // Encode room info in query params
-    const params = new URLSearchParams({
-      step: '5',
-      location: room.location,
-      budget: room.price.replace(/\D/g, '') // remove $ and /mo
-    })
-    router.push(`/dashboard/user/request-roommate?${params.toString()}`)
-  }
-  
-  
-
   return (
     <div className="relative bg-white dark:bg-gray-700 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col">
       <div
@@ -38,14 +26,6 @@ export default function ListingCard({ room }) {
         <div className="flex items-center justify-between text-gray-700 dark:text-gray-200 gap-2 text-sm font-medium mb-4">
           <span>📍 {room.location}</span>
         </div>
-
-        {/* Request Roommate Button */}
-        <button
-          onClick={handleRequestRoommate}
-          className="mt-auto w-full px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition"
-        >
-          Request Roommate
-        </button>
       </div>
     </div>
   )
