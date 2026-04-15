@@ -13,8 +13,7 @@ class RoomController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Room::with('owner')
-            ->where('occupancy_status', 'available');
+        $query = Room::with('owner');
 
         // Search by name or description
         if ($request->has('search') && $request->search) {
@@ -75,8 +74,9 @@ class RoomController extends Controller
             'beds'         => $room->beds,
             'baths'        => $room->baths,
             'size'         => $room->size,
-            'room_number'  => $room->room_number,
-            'owner_id'     => $room->owner_id,
+            'room_number'      => $room->room_number,
+            'occupancy_status' => $room->occupancy_status,
+            'owner_id'         => $room->owner_id,
             'owner' => [
                 'name'    => $room->owner->name ?? 'Owner',
                 'avatar'  => '/users/default-avatar.svg',
