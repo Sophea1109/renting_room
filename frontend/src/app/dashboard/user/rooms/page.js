@@ -1,29 +1,47 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import RoomCard from '@/components/RoomCard'
-import { rooms as initialRooms } from '@/data/roomData'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'
 
 export default function RoomsPage() {
+  const [rooms, setRooms] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
 
-  // Dynamically get unique locations for the filter dropdown
-  const locations = useMemo(() => {
-    const allLocations = initialRooms.map(r => r.location)
-    return [...new Set(allLocations)]
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch(`${API_BASE_URL}/rooms`, { cache: 'no-store' })
+        if (!response.ok) throw new Error('Failed to fetch rooms')
+        const data = await response.json()
+        setRooms(data.rooms || [])
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchRooms()
   }, [])
 
-  const filteredRooms = initialRooms.filter(room => {
+  const locations = useMemo(() => {
+    return [...new Set(rooms.map(r => r.location).filter(Boolean))]
+  }, [rooms])
+
+  const filteredRooms = rooms.filter(room => {
     const matchesTitle = room.title.toLowerCase().includes(search.toLowerCase())
     const matchesLocation = locationFilter === '' || room.location === locationFilter
-    const roomPriceNum = parseInt(room.price.replace(/\D/g, '')) || 0
-    const matchesMinPrice = minPrice === '' || roomPriceNum >= parseInt(minPrice)
-    const matchesMaxPrice = maxPrice === '' || roomPriceNum <= parseInt(maxPrice)
+    const matchesMinPrice = minPrice === '' || room.monthly_rent >= parseInt(minPrice)
+    const matchesMaxPrice = maxPrice === '' || room.monthly_rent <= parseInt(maxPrice)
     return matchesTitle && matchesLocation && matchesMinPrice && matchesMaxPrice
   })
 
@@ -32,7 +50,7 @@ export default function RoomsPage() {
       <Header />
 
       {/* Page Title */}
-     <section className="pt-32 pb-8 text-center bg-gradient-to-r from-[#0B2B26] via-[#235347] to-[#DAF1DE]">
+      <section className="pt-32 pb-8 text-center bg-gradient-to-r from-[#0B2B26] via-[#235347] to-[#DAF1DE]">
         <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg">
           Browse Rooms
         </h1>
@@ -80,9 +98,15 @@ export default function RoomsPage() {
 
       {/* Rooms Grid */}
       <section className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {filteredRooms.length === 0 ? (
+        {loading ? (
+          <div className="col-span-full flex justify-center py-12">
+            <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <p className="text-center col-span-full text-red-500">{error}</p>
+        ) : filteredRooms.length === 0 ? (
           <p className="text-center col-span-full text-gray-700 dark:text-gray-200">
-            No rooms found.
+            No available rooms found.
           </p>
         ) : (
           filteredRooms.map(room => <RoomCard key={room.id} room={room} />)

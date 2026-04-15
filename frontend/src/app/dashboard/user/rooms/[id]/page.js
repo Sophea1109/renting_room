@@ -1,10 +1,8 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { rooms } from '@/data/roomData'
-import { Sparkles, Star, MapPin, ChevronRight, Heart, Share2, Users } from 'lucide-react'
+import { Sparkles, Star, MapPin, ChevronRight, Heart, Share2 } from 'lucide-react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -20,44 +18,57 @@ L.Icon.Default.mergeOptions({
   shadowUrl: '/leaflet/marker-shadow.png',
 })
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'
+
 export default function RoomDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [room, setRoom] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [totalPrice, setTotalPrice] = useState(0)
-  const [months, setMonths] = useState(0)
+  const [months, setMonths] = useState(1)
 
   useEffect(() => {
     if (!params?.id) return
-    const foundRoom = rooms.find(r => r.id === parseInt(params.id, 10))
-    setRoom(foundRoom || null)
-    if (foundRoom) {
-      setTotalPrice(parseInt(foundRoom.price.replace(/\D/g, ''), 10))
+    const fetchRoom = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch(`${API_BASE_URL}/rooms/${params.id}`, { cache: 'no-store' })
+        if (!res.ok) throw new Error('Room not found')
+        const data = await res.json()
+        setRoom(data)
+        setTotalPrice(data.monthly_rent || 0)
+      } catch (err) {
+        setRoom(null)
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [params])
+    fetchRoom()
+  }, [params?.id])
 
   useEffect(() => {
     if (startDate && endDate && room) {
       const start = new Date(startDate)
       const end = new Date(endDate)
-      
-      const years = end.getFullYear() - start.getFullYear()
-      const monthsDiff = (years * 12) + (end.getMonth() - start.getMonth())
-      
-      const basePrice = parseInt(room.price.replace(/\D/g, ''), 10)
-      
-      if (monthsDiff > 0) {
-        setMonths(monthsDiff)
-        setTotalPrice(basePrice * monthsDiff)
-      } else {
-        setMonths(1)
-        setTotalPrice(basePrice)
-      }
+      const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth())
+      const m = monthsDiff > 0 ? monthsDiff : 1
+      setMonths(m)
+      setTotalPrice(room.monthly_rent * m)
     }
   }, [startDate, endDate, room])
+
+  if (loading) return (
+    <div className="min-h-screen">
+      <Header />
+      <div className="pt-24 flex justify-center items-center h-64">
+        <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+      </div>
+    </div>
+  )
 
   if (!room) return (
     <div className="min-h-screen">
@@ -81,9 +92,9 @@ export default function RoomDetailPage() {
 
       <div className="pt-24 container mx-auto px-4 max-w-6xl">
         {/* Hero Image */}
-        <div 
-          className="relative h-96 w-full rounded-3xl overflow-hidden mb-8 bg-cover bg-center"
-          style={{ backgroundImage: `url(${room.image})` }}
+        <div
+          className="relative h-96 w-full rounded-3xl overflow-hidden mb-8 bg-cover bg-center bg-gray-200"
+          style={{ backgroundImage: room.image ? `url(${room.image})` : undefined }}
         >
           <button
             onClick={() => router.back()}
@@ -102,13 +113,37 @@ export default function RoomDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{room.title}</h1>
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-4">
                 <MapPin className="w-5 h-5 text-emerald-500" />
                 {room.location}
               </div>
-              <p className="mt-4 text-gray-700 dark:text-gray-300">{room.description}</p>
 
-              {/* Map Section */}
+              {/* Room specs */}
+              {(room.beds || room.baths || room.size) && (
+                <div className="flex gap-4 mb-4 text-sm text-gray-600 dark:text-gray-400">
+                  {room.beds && <span>🛏 {room.beds} Bed{room.beds > 1 ? 's' : ''}</span>}
+                  {room.baths && <span>🚿 {room.baths} Bath{room.baths > 1 ? 's' : ''}</span>}
+                  {room.size && <span>📐 {room.size} sqft</span>}
+                </div>
+              )}
+
+              <p className="text-gray-700 dark:text-gray-300">{room.description}</p>
+
+              {/* Amenities */}
+              {room.amenities && room.amenities.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">What this place offers</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {room.amenities.map(amenity => (
+                      <span key={amenity} className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm border border-emerald-100">
+                        {amenity}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Map placeholder — coordinates not stored yet */}
               {room.coordinates && !isPaymentOpen && (
                 <div className="mt-6 h-80 w-full rounded-2xl overflow-hidden">
                   <MapContainer
@@ -119,7 +154,7 @@ export default function RoomDetailPage() {
                   >
                     <TileLayer
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      attribution='&copy; OpenStreetMap contributors'
                     />
                     <Marker position={[room.coordinates.lat, room.coordinates.lng]}>
                       <Popup>{room.title}</Popup>
@@ -129,14 +164,18 @@ export default function RoomDetailPage() {
               )}
             </div>
           </div>
-
-          {/* Sidebar / Owner */}
+          {/* Sidebar / Booking */}
           <div className="space-y-6">
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+              {/* Owner */}
               <div className="flex items-center gap-4 mb-4">
-                <img src={room.owner.avatar} alt={room.owner.name} className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/50" />
+                <img
+                  src={room.owner?.avatar || '/users/default-avatar.svg'}
+                  alt={room.owner?.name}
+                  className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/50"
+                />
                 <div>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{room.owner.name}</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{room.owner?.name}</p>
                   <div className="flex items-center gap-1 text-amber-500">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-4 h-4 fill-current" />
@@ -146,11 +185,12 @@ export default function RoomDetailPage() {
                 </div>
               </div>
 
+              {/* Date Pickers */}
               <div className="grid grid-cols-1 gap-4 mb-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Move-in Date</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
@@ -158,8 +198,8 @@ export default function RoomDetailPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Move-out Date</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
@@ -167,6 +207,7 @@ export default function RoomDetailPage() {
                 </div>
               </div>
 
+              {/* Price Summary */}
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
                   <span>Price per month</span>
@@ -174,7 +215,7 @@ export default function RoomDetailPage() {
                 </div>
                 <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
                   <span>Total months</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{months || 1} {months > 1 ? 'Months' : 'Month'}</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{months} {months > 1 ? 'Months' : 'Month'}</span>
                 </div>
                 <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
                   <span className="font-bold text-gray-900 dark:text-white">Total</span>
@@ -182,7 +223,7 @@ export default function RoomDetailPage() {
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => setIsPaymentOpen(true)}
                 className="w-full px-4 py-3 bg-emerald-500 text-white rounded-lg mb-2 hover:bg-emerald-600 transition"
               >
@@ -198,13 +239,18 @@ export default function RoomDetailPage() {
 
       <Footer />
 
-      <PaymentModal 
-        isOpen={isPaymentOpen} 
-        onClose={() => setIsPaymentOpen(false)} 
-        item={room} 
-        type="room" 
+      <PaymentModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        item={room}
+        type="room"
         dates={{ startDate, endDate }}
         totalPrice={`$${totalPrice}`}
+        roomId={room.id}
+        ownerId={room.owner_id}
+        startDate={startDate}
+        endDate={endDate}
+        totalAmount={totalPrice}
       />
     </div>
   )

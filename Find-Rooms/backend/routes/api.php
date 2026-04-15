@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OwnerDashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\RoomController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -18,6 +19,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
 });
+
+// Public room listing for tenants
+Route::get('/rooms', [RoomController::class, 'index']);
+Route::get('/rooms/{room}', [RoomController::class, 'show']);
 
 Route::get('/owner/dashboard', [OwnerDashboardController::class, 'index']);
 Route::post('/owner/rooms', [OwnerDashboardController::class, 'store']);            // create room

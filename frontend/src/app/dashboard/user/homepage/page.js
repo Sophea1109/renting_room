@@ -10,17 +10,31 @@ import HotelCard from "@/components/HotelCard";
 import FeedbackCard from "@/components/FeedbackCard";
 
 // Data
-import { rooms } from "@/data/roomData";
 import { hotels as mockHotels } from "@/data/hotelData";
 import { listings as importedListings } from "@/data/listings";
 import { feedbacks as importedFeedbacks } from "@/data/feedbacks";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
 export default function HomePage() {
-  // State for rooms, listings, and feedbacks
   const [roomListings, setRoomListings] = useState(importedListings);
-  const [roomData, setRoomData] = useState(rooms);
+  const [roomData, setRoomData] = useState([]);
   const [hotelData, setHotelData] = useState(mockHotels);
   const [feedbacks, setFeedbacks] = useState(importedFeedbacks || []);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/rooms`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        setRoomData(data.rooms || []);
+      } catch {
+        // silently fall back to empty
+      }
+    };
+    fetchRooms();
+  }, []);
   const [userComment, setUserComment] = useState("");
 
   const handleAddFeedback = (e) => {

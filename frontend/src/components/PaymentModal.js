@@ -1,45 +1,78 @@
 'use client'
 
 import { useState } from 'react'
-import { X, CreditCard, CheckCircle2, Download, Printer } from 'lucide-react'
+import { X, CreditCard, CheckCircle2, Printer } from 'lucide-react'
+import { createBooking } from '@/lib/bookingApi'
 
-export default function PaymentModal({ isOpen, onClose, item, type, dates, totalPrice }) {
-  const [step, setStep] = useState('payment') // payment, processing, success
+export default function PaymentModal({
+  isOpen, onClose,
+  item, type, dates, totalPrice,
+  roomId, ownerId, startDate, endDate, totalAmount
+}) {
+  const [step, setStep] = useState('payment') // payment | processing | success
   const [cardNumber, setCardNumber] = useState('')
   const [expiry, setExpiry] = useState('')
   const [cvv, setCvv] = useState('')
   const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [bookingError, setBookingError] = useState(null)
 
   if (!isOpen) return null
 
-  const handlePayment = (e) => {
-    e.preventDefault()
-    setStep('processing')
-    setTimeout(() => {
-      setStep('success')
-    }, 2000)
+  const handleClose = () => {
+    // Reset form state on close
+    setStep('payment')
+    setCardNumber('')
+    setExpiry('')
+    setCvv('')
+    setName('')
+    setEmail('')
+    setBookingError(null)
+    onClose()
   }
 
-  const handlePrint = () => {
-    window.print()
+  const handlePayment = async (e) => {
+    e.preventDefault()
+    setBookingError(null)
+    setStep('processing')
+
+    try {
+      // Submit booking to backend
+      if (roomId && startDate && endDate && totalAmount) {
+        await createBooking({
+          room_id:      roomId,
+          tenant_name:  name,
+          tenant_email: email,
+          start_date:   startDate,
+          end_date:     endDate,
+          total_amount: totalAmount,
+        })
+      }
+      // Show success after booking is created
+      setStep('success')
+    } catch (err) {
+      setBookingError(err.message || 'Booking failed. Please try again.')
+      setStep('payment')
+    }
   }
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-gray-100 dark:border-gray-700">
-        
+
         {step !== 'processing' && (
-          <button 
-            onClick={onClose}
+          <button
+            onClick={handleClose}
             className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-10"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
         )}
 
+        {/* ── Payment Form ── */}
         {step === 'payment' && (
           <div className="p-8">
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-2xl bg-[#DAF1DE] flex items-center justify-center text-[#0B2B26]">
                 <CreditCard className="w-6 h-6" />
               </div>
@@ -49,18 +82,51 @@ export default function PaymentModal({ isOpen, onClose, item, type, dates, total
               </div>
             </div>
 
+            {/* Item summary */}
             <div className="mb-6 p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700">
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-gray-500">Item</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{item.title || item.name}</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{item?.title || item?.name}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Amount</span>
-                <span className="font-bold text-[#235347] dark:text-[#DAF1DE]">{totalPrice || item.price}</span>
+                <span className="font-bold text-[#235347] dark:text-[#DAF1DE]">{totalPrice || item?.price}</span>
               </div>
             </div>
 
+            {/* Error message */}
+            {bookingError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">
+                {bookingError}
+              </div>
+            )}
+
             <form onSubmit={handlePayment} className="space-y-4">
+              {/* Tenant info */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Full Name</label>
+                <input
+                  type="text"
+                  placeholder="Your full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#235347] transition"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Email</label>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#235347] transition"
+                  required
+                />
+              </div>
+
+              {/* Card details */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Card Number</label>
                 <div className="relative">
@@ -103,19 +169,7 @@ export default function PaymentModal({ isOpen, onClose, item, type, dates, total
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Cardholder Name</label>
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#235347] transition"
-                  required
-                />
-              </div>
-
-              <button 
+              <button
                 type="submit"
                 className="w-full mt-4 py-4 bg-[#0B2B26] text-[#DAF1DE] font-black rounded-2xl hover:bg-[#235347] transition-all transform hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#0B2B26]/20 uppercase tracking-widest text-sm"
               >
@@ -125,27 +179,29 @@ export default function PaymentModal({ isOpen, onClose, item, type, dates, total
           </div>
         )}
 
+        {/* ── Processing ── */}
         {step === 'processing' && (
           <div className="p-12 text-center">
             <div className="inline-block w-16 h-16 border-4 border-[#DAF1DE] border-t-[#0B2B26] rounded-full animate-spin mb-6"></div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Processing...</h2>
-            <p className="text-gray-500">Please wait while we confirm your payment</p>
+            <p className="text-gray-500">Please wait while we confirm your booking</p>
           </div>
         )}
 
+        {/* ── Success ── */}
         {step === 'success' && (
           <div className="p-8">
             <div className="text-center mb-8">
               <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-500 mx-auto mb-4 animate-bounce">
                 <CheckCircle2 className="w-12 h-12" />
               </div>
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white">Payment Successful!</h2>
-              <p className="text-gray-500 mt-2">Your receipt is ready below</p>
+              <h2 className="text-3xl font-black text-gray-900 dark:text-white">Booking Submitted!</h2>
+              <p className="text-gray-500 mt-2">Your request has been sent to the owner for approval</p>
             </div>
 
             <div className="bg-gray-50 dark:bg-gray-900 rounded-[2rem] p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-2 bg-[#0B2B26]"></div>
-              
+
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-sm font-bold uppercase tracking-tighter text-gray-400">Receipt</h3>
@@ -161,7 +217,11 @@ export default function PaymentModal({ isOpen, onClose, item, type, dates, total
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Item</span>
-                  <span className="font-medium text-gray-900 dark:text-white truncate max-w-[150px]">{item.title || item.name}</span>
+                  <span className="font-medium text-gray-900 dark:text-white truncate max-w-[150px]">{item?.title || item?.name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Tenant</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{name}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Rule</span>
@@ -171,7 +231,7 @@ export default function PaymentModal({ isOpen, onClose, item, type, dates, total
                   <span className="text-gray-500">Date</span>
                   <span className="font-medium text-gray-900 dark:text-white">{new Date().toLocaleDateString()}</span>
                 </div>
-                {dates && (
+                {dates?.startDate && dates?.endDate && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Duration</span>
                     <span className="font-medium text-[#235347] dark:text-[#DAF1DE]">{dates.startDate} to {dates.endDate}</span>
@@ -179,20 +239,20 @@ export default function PaymentModal({ isOpen, onClose, item, type, dates, total
                 )}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
                   <span className="font-black text-gray-900 dark:text-white uppercase tracking-wider">Total Paid</span>
-                  <span className="text-2xl font-black text-[#0B2B26] dark:text-[#DAF1DE]">{totalPrice || item.price}</span>
+                  <span className="text-2xl font-black text-[#0B2B26] dark:text-[#DAF1DE]">{totalPrice || item?.price}</span>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-8">
-              <button 
-                onClick={handlePrint}
+              <button
+                onClick={() => window.print()}
                 className="flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white font-bold rounded-2xl hover:bg-gray-200 transition-all uppercase tracking-widest text-xs"
               >
                 <Printer className="w-4 h-4" /> Print
               </button>
-              <button 
-                onClick={onClose}
+              <button
+                onClick={handleClose}
                 className="flex items-center justify-center gap-2 py-4 bg-[#0B2B26] text-[#DAF1DE] font-bold rounded-2xl hover:bg-[#235347] transition-all uppercase tracking-widest text-xs"
               >
                 Done
