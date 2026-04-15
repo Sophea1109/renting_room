@@ -1,17 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Home, MessageSquare, Settings, LogOut, ChevronRight, BedDouble, User } from 'lucide-react';
+import { Home, MessageSquare, Settings, LogOut, ChevronRight, BedDouble, User, FileText } from 'lucide-react';
+import { useUser } from '@/context/UserContext';
+import { fetchPendingCount } from '@/lib/bookingApi';
 
 export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onToggleCollapse }) {
   const router = useRouter();
+  const { user } = useUser();
   const [hoveredItem, setHoveredItem] = useState(null);
   const [hasUnreadMessages] = useState(true);
+  const [pendingBookings, setPendingBookings] = useState(0);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadPendingCount = async () => {
+      try {
+        const data = await fetchPendingCount(user.id);
+        setPendingBookings(data.pending_count || 0);
+      } catch {
+        setPendingBookings(0);
+      }
+    };
+    loadPendingCount();
+    const interval = setInterval(loadPendingCount, 30000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <Home size={20} />, notification: 0, path: '/dashboard/owner' },
     { id: 'rooms', label: 'My Rooms', icon: <BedDouble size={20} />, notification: 2, path: '/dashboard/owner/rooms' },
+    { id: 'bookings', label: 'Booking Requests', icon: <FileText size={20} />, notification: pendingBookings, path: '/dashboard/owner/bookings' },
     { id: 'messages', label: 'Messages', icon: <MessageSquare size={20} />, notification: hasUnreadMessages ? 3 : 0, path: '/dashboard/owner/messages' },
     { id: 'profile', label: 'Profile', icon: <User size={20} />, notification: 0, path: '/dashboard/owner/profile' },
     { id: 'settings', label: 'Settings', icon: <Settings size={20} />, notification: 0, path: '/dashboard/owner/settings' },
@@ -56,7 +75,7 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
                 {!collapsed && <span>{item.label}</span>}
               </div>
 
-              {/* Notification */}
+              {/* Notification badge */}
               {item.notification > 0 && (
                 <div className={`relative z-10 ${collapsed ? 'absolute top-1 right-1' : ''}`}>
                   <span className="w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center shadow-lg animate-bounce">
@@ -66,7 +85,7 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
               )}
             </button>
 
-            {/* Tooltip */}
+            {/* Tooltip when collapsed */}
             {collapsed && (
               <div
                 className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-2 py-1 bg-slate-900 text-white text-xs rounded border border-slate-700 shadow-lg transition-all opacity-0 invisible"

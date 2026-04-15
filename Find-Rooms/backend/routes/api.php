@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OwnerDashboardController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookingController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -23,3 +24,10 @@ Route::post('/owner/rooms', [OwnerDashboardController::class, 'store']);        
 Route::patch('/owner/rooms/{room}', [OwnerDashboardController::class, 'update']);   // edit room details
 Route::patch('/owner/rooms/{room}/status', [OwnerDashboardController::class, 'updateRoomStatus']); // update status only
 Route::delete('/owner/rooms/{room}', [OwnerDashboardController::class, 'destroy']); // delete room
+
+// Booking routes
+Route::post('/bookings', [BookingController::class, 'store']);                              // tenant submits booking
+Route::get('/owner/bookings', [BookingController::class, 'index']);                         // owner views all bookings
+Route::get('/owner/bookings/pending-count', [BookingController::class, 'pendingCount']);    // notification badge count
+Route::patch('/owner/bookings/{booking}/approve', [BookingController::class, 'approve']);   // owner approves
+Route::patch('/owner/bookings/{booking}/reject', [BookingController::class, 'reject']);     // owner rejects
