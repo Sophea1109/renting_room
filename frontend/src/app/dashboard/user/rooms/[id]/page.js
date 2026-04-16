@@ -225,6 +225,14 @@ export default function RoomDetailPage() {
                 </div>
               </div>
 
+              {/* Occupied banner */}
+              {room.occupancy_status === 'occupied' && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-center">
+                  <span className="text-red-600 font-semibold text-sm">🔒 This room is currently occupied</span>
+                  <p className="text-red-400 text-xs mt-1">Not available for booking at this time</p>
+                </div>
+              )}
+
               {/* Date Pickers */}
               <div className="grid grid-cols-1 gap-4 mb-6">
                 <div>
@@ -233,8 +241,9 @@ export default function RoomDetailPage() {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
+                    disabled={room.occupancy_status === 'occupied'}
                     style={{ colorScheme: 'light' }}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition cursor-pointer"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -243,8 +252,9 @@ export default function RoomDetailPage() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
+                    disabled={room.occupancy_status === 'occupied'}
                     style={{ colorScheme: 'light' }}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition cursor-pointer"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -267,11 +277,11 @@ export default function RoomDetailPage() {
 
               <button
                 onClick={() => setIsPaymentOpen(true)}
-                disabled={!startDate || !endDate}
+                disabled={room.occupancy_status === 'occupied' || !startDate || !endDate}
                 className="w-full px-4 py-3 bg-emerald-500 text-white rounded-lg mb-2 hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!startDate || !endDate ? 'Please select move-in and move-out dates first' : ''}
+                title={room.occupancy_status === 'occupied' ? 'This room is currently occupied' : (!startDate || !endDate ? 'Please select move-in and move-out dates first' : '')}
               >
-                {!startDate || !endDate ? 'Select Dates to Rent' : 'Rent Now'}
+                {room.occupancy_status === 'occupied' ? 'Room Occupied' : (!startDate || !endDate ? 'Select Dates to Rent' : 'Rent Now')}
               </button>
               <button className="w-full px-4 py-3 bg-white/80 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-emerald-500 hover:bg-white transition">
                 Message Owner

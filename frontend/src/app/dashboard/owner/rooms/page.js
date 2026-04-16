@@ -73,6 +73,9 @@ export default function RoomsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [showEditSuccessAlert, setShowEditSuccessAlert] = useState(false);
   const [actionError, setActionError] = useState('');
+
+  // Mark available state
+  const [markingAvailable, setMarkingAvailable] = useState(null);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -246,6 +249,28 @@ const confirmDelete = async () => {
     setRoomToEdit(null);
   };
 
+  const handleMarkAvailable = async (roomId) => {
+    setMarkingAvailable(roomId);
+    setActionError('');
+    try {
+      await updateOwnerRoomStatus(roomId, {
+        occupancy_status: 'available',
+        payment_status:   'unpaid',
+      });
+      setRoomsList((prev) =>
+        prev.map((r) =>
+          r.id === roomId
+            ? { ...r, occupancyStatus: 'available', paymentStatus: 'unpaid' }
+            : r
+        )
+      );
+    } catch (error) {
+      setActionError(error?.message || 'Failed to update room status');
+    } finally {
+      setMarkingAvailable(null);
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-100">
       {/* Sidebar */}
@@ -342,14 +367,23 @@ const confirmDelete = async () => {
                         {room.price}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      <div className="space-y-1">
-                        <div>
-                          <span className="font-medium">Occupancy:</span> {room.occupancyStatus === "occupied" ? "Occupied" : "Unoccupied"}
-                        </div>
-                        <div>
-                          <span className="font-medium">Payment:</span> {room.paymentStatus === "paid" ? "Paid" : "Unpaid"}
-                        </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="space-y-1.5">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          room.occupancyStatus === 'occupied'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-green-100 text-green-700'
+                        }`}>
+                          {room.occupancyStatus === 'occupied' ? 'Occupied' : 'Unoccupied'}
+                        </span>
+                        <br />
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          room.paymentStatus === 'paid'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {room.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -366,13 +400,24 @@ const confirmDelete = async () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-3">
-                        <button className="text-blue-600 hover:text-blue-900 transition-all hover:underline flex items-center gap-1" onClick={() => handleEditClick(room)}>
-                          <FiEdit className="w-4 h-4" />Edit  
-                        </button>
-                        <button className="text-red-600 hover:text-red-900 transition-all hover:underline flex items-center gap-1" onClick={() => handleDeleteClick(room.id, room.title)}>
-                          <FiTrash2 className="w-4 h-4" />Delete
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex space-x-3">
+                          <button className="text-blue-600 hover:text-blue-900 transition-all hover:underline flex items-center gap-1" onClick={() => handleEditClick(room)}>
+                            <FiEdit className="w-4 h-4" />Edit
+                          </button>
+                          <button className="text-red-600 hover:text-red-900 transition-all hover:underline flex items-center gap-1" onClick={() => handleDeleteClick(room.id, room.title)}>
+                            <FiTrash2 className="w-4 h-4" />Delete
+                          </button>
+                        </div>
+                        {room.occupancyStatus === 'occupied' && (
+                          <button
+                            onClick={() => handleMarkAvailable(room.id)}
+                            disabled={markingAvailable === room.id}
+                            className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg transition-all flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {markingAvailable === room.id ? 'Updating...' : '✓ Mark as Available'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

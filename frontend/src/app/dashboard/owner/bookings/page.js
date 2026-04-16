@@ -8,18 +8,20 @@ import OwnerHeader from '@/components/OwnerHeader';
 import { useUser } from '@/context/UserContext';
 import { fetchOwnerBookings, approveBooking, rejectBooking } from '@/lib/bookingApi';
 
-const STATUS_TABS = ['all', 'pending', 'approved', 'rejected'];
+const STATUS_TABS = ['all', 'pending', 'approved', 'rejected', 'completed'];
 
 const statusStyle = {
-  pending:  'bg-yellow-100 text-yellow-700 border border-yellow-200',
-  approved: 'bg-green-100  text-green-700  border border-green-200',
-  rejected: 'bg-red-100    text-red-700    border border-red-200',
+  pending:   'bg-yellow-100 text-yellow-700 border border-yellow-200',
+  approved:  'bg-green-100  text-green-700  border border-green-200',
+  rejected:  'bg-red-100    text-red-700    border border-red-200',
+  completed: 'bg-blue-100   text-blue-700   border border-blue-200',
 };
 
 const statusIcon = {
-  pending:  <Clock size={13} />,
-  approved: <Check size={13} />,
-  rejected: <X size={13} />,
+  pending:   <Clock size={13} />,
+  approved:  <Check size={13} />,
+  rejected:  <X size={13} />,
+  completed: <Check size={13} />,
 };
 
 export default function BookingRequestsPage() {
@@ -33,7 +35,10 @@ export default function BookingRequestsPage() {
   const [actionLoading, setActionLoading] = useState(null);
 
   const loadBookings = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const data = await fetchOwnerBookings(user.id, activeFilter === 'all' ? null : activeFilter);
@@ -41,6 +46,7 @@ export default function BookingRequestsPage() {
       setCounts(data.counts || { all: 0, pending: 0, approved: 0, rejected: 0 });
     } catch (err) {
       toast.error(err.message || 'Failed to load bookings');
+      setBookings([]);
     } finally {
       setLoading(false);
     }

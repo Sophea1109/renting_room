@@ -27,6 +27,36 @@ class BookingController extends Controller
 
         $room = Room::findOrFail($validated['room_id']);
 
+        // Block booking if room is already occupied
+        if ($room->occupancy_status === 'occupied') {
+            return response()->json([
+                'message' => 'This room is already occupied and not available for booking.',
+            ], 422);
+        }
+
+        // Block if room already has an active approved booking
+        $alreadyApproved = Booking::where('room_id', $room->id)
+            ->where('status', 'approved')
+            ->exists();
+
+        if ($alreadyApproved) {
+            return response()->json([
+                'message' => 'This room already has an approved tenant.',
+            ], 422);
+        }
+
+        // Block if there's already a pending booking from the same email for this room
+        $duplicatePending = Booking::where('room_id', $room->id)
+            ->where('tenant_email', $validated['tenant_email'])
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($duplicatePending) {
+            return response()->json([
+                'message' => 'You already have a pending booking request for this room.',
+            ], 422);
+        }
+
         $booking = Booking::create([
             'room_id'      => $room->id,
             'owner_id'     => $room->owner_id,
@@ -58,7 +88,7 @@ class BookingController extends Controller
             ->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected')")
             ->orderBy('created_at', 'desc');
 
-        if ($status && in_array($status, ['pending', 'approved', 'rejected'])) {
+        if ($status && in_array($status, ['pending', 'approved', 'rejected', 'completed'])) {
             $query->where('status', $status);
         }
 
@@ -78,17 +108,19 @@ class BookingController extends Controller
             ];
         });
 
-        $pendingCount  = Booking::where('owner_id', $ownerId)->where('status', 'pending')->count();
-        $approvedCount = Booking::where('owner_id', $ownerId)->where('status', 'approved')->count();
-        $rejectedCount = Booking::where('owner_id', $ownerId)->where('status', 'rejected')->count();
+        $pendingCount   = Booking::where('owner_id', $ownerId)->where('status', 'pending')->count();
+        $approvedCount  = Booking::where('owner_id', $ownerId)->where('status', 'approved')->count();
+        $rejectedCount  = Booking::where('owner_id', $ownerId)->where('status', 'rejected')->count();
+        $completedCount = Booking::where('owner_id', $ownerId)->where('status', 'completed')->count();
 
         return response()->json([
             'bookings' => $bookings,
             'counts'   => [
-                'all'      => $bookings->count(),
-                'pending'  => $pendingCount,
-                'approved' => $approvedCount,
-                'rejected' => $rejectedCount,
+                'all'       => $bookings->count(),
+                'pending'   => $pendingCount,
+                'approved'  => $approvedCount,
+                'rejected'  => $rejectedCount,
+                'completed' => $completedCount,
             ],
         ]);
     }

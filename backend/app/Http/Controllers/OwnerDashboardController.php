@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\Room;
 use App\Models\RoomPayment;
 use Carbon\Carbon;
@@ -200,6 +201,16 @@ class OwnerDashboardController extends Controller
         }
 
         $room->save();
+
+        // If owner is marking the room as available again → complete the old approved booking
+        if (
+            array_key_exists('occupancy_status', $validated)
+            && $validated['occupancy_status'] === 'available'
+        ) {
+            Booking::where('room_id', $room->id)
+                ->where('status', 'approved')
+                ->update(['status' => 'completed']);
+        }
 
         if (
             array_key_exists('payment_status', $validated)
