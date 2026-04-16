@@ -272,12 +272,12 @@ export default function OwnerSettingsPage() {
                         <select
                           value={generalSettings.language}
                           onChange={(e) => handleSettingChange("general", "language", e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2  text-gray-900 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         >
-                          <option value="english">English</option>
-                          <option value="khmer">Khmer</option>
-                          <option value="chinese">Chinese</option>
-                          <option value="french">French</option>
+                          <option value="english" style={{ color: 'black' }}>English</option>
+                          <option value="khmer" style={{ color: 'black' }}>Khmer</option>
+                          <option value="chinese" style={{ color: 'black' }}>Chinese</option>
+                          <option value="french" style={{ color: 'black' }}>French</option>
                         </select>
                       </div>
                       
@@ -288,7 +288,7 @@ export default function OwnerSettingsPage() {
                         <select
                           value={generalSettings.timezone}
                           onChange={(e) => handleSettingChange("general", "timezone", e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2  text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         >
                           <option value="Asia/Phnom_Penh">Asia/Phnom Penh (GMT+7)</option>
                           <option value="Asia/Bangkok">Asia/Bangkok (GMT+7)</option>
@@ -304,11 +304,11 @@ export default function OwnerSettingsPage() {
                         <select
                           value={generalSettings.dateFormat}
                           onChange={(e) => handleSettingChange("general", "dateFormat", e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2  text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         >
-                          <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                          <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                          <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                          <option value="DD/MM/YYYY" style={{ color: 'black' }}>DD/MM/YYYY</option>
+                          <option value="MM/DD/YYYY" style={{ color: 'black' }}>MM/DD/YYYY</option>
+                          <option value="YYYY-MM-DD" style={{ color: 'black' }}>YYYY-MM-DD</option>
                         </select>
                       </div>
                       
@@ -319,7 +319,7 @@ export default function OwnerSettingsPage() {
                         <select
                           value={generalSettings.currency}
                           onChange={(e) => handleSettingChange("general", "currency", e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2  text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         >
                           <option value="USD">US Dollar ($)</option>
                           <option value="KHR">Cambodian Riel (៛)</option>

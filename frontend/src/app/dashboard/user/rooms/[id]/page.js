@@ -20,6 +20,40 @@ L.Icon.Default.mergeOptions({
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'
 
+// Predefined coordinates for known locations
+const LOCATION_COORDINATES = {
+  'Chamkarmon':      { lat: 11.5449, lng: 104.9220 },
+  'Toul Kork':       { lat: 11.5796, lng: 104.9078 },
+  '7 Makara':        { lat: 11.5625, lng: 104.9160 },
+  'Boeung Keng Kang':{ lat: 11.5530, lng: 104.9270 },
+  'Sen Sok':         { lat: 11.6050, lng: 104.8780 },
+  'Chroy Changvar':  { lat: 11.5990, lng: 104.9380 },
+  'Dangkao':         { lat: 11.4870, lng: 104.9100 },
+  'Meanchey':        { lat: 11.5250, lng: 104.9350 },
+  // Fallback — city center of Phnom Penh
+  'default':         { lat: 11.5564, lng: 104.9282 },
+}
+
+const redIcon = new L.Icon({
+  iconUrl: '/leaflet/marker-icon-red.png',
+  shadowUrl: '/leaflet/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+function getCoordinates(location) {
+  if (!location) return LOCATION_COORDINATES['default']
+  // Try exact match first, then partial match
+  const exact = LOCATION_COORDINATES[location]
+  if (exact) return exact
+  const key = Object.keys(LOCATION_COORDINATES).find(k =>
+    location.toLowerCase().includes(k.toLowerCase())
+  )
+  return key ? LOCATION_COORDINATES[key] : LOCATION_COORDINATES['default']
+}
+
 export default function RoomDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -143,25 +177,31 @@ export default function RoomDetailPage() {
                 </div>
               )}
 
-              {/* Map placeholder — coordinates not stored yet */}
-              {room.coordinates && !isPaymentOpen && (
-                <div className="mt-6 h-80 w-full rounded-2xl overflow-hidden">
-                  <MapContainer
-                    center={[room.coordinates.lat, room.coordinates.lng]}
-                    zoom={16}
-                    scrollWheelZoom={false}
-                    className="h-full w-full"
-                  >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; OpenStreetMap contributors'
-                    />
-                    <Marker position={[room.coordinates.lat, room.coordinates.lng]}>
-                      <Popup>{room.title}</Popup>
-                    </Marker>
-                  </MapContainer>
-                </div>
-              )}
+              {/* Map — derived from room location name */}
+              {!isPaymentOpen && (() => {
+                const coords = getCoordinates(room.location)
+                return (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Location</h3>
+                    <div className="h-72 w-full rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                      <MapContainer
+                        center={[coords.lat, coords.lng]}
+                        zoom={15}
+                        scrollWheelZoom={false}
+                        className="h-full w-full"
+                      >
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; OpenStreetMap contributors'
+                        />
+                        <Marker position={[coords.lat, coords.lng]} icon={redIcon}>
+                          <Popup>{room.title}<br />{room.location}</Popup>
+                        </Marker>
+                      </MapContainer>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           </div>
           {/* Sidebar / Booking */}
