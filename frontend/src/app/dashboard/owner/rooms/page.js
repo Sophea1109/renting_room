@@ -20,6 +20,7 @@ import ownerDashboardApi from "@/lib/ownerDashboardApi";
 
 const {
   fetchOwnerDashboard,
+  updateOwnerRoom,
   updateOwnerRoomStatus,
   deleteOwnerRoom,
 } = ownerDashboardApi;
@@ -166,16 +167,15 @@ export default function RoomsPage() {
   setActionError('');
 
   try {
-    await updateOwnerRoomStatus(roomToEdit.id, {
-      name: formData.title,
-      description: formData.description,
-      location: formData.location,
-      image_url: formData.image,
-      owner_name: formData.owner.name,
-      contact_email: formData.owner.contact,
-      monthly_rent: Number(formData.price || 0),
-      occupancy_status: formData.occupancyStatus,
-      payment_status: formData.paymentStatus,
+    await updateOwnerRoom(roomToEdit.id, {
+      name:              formData.title,
+      owner_name:        formData.owner.name,
+      description:       formData.description,
+      location:          formData.location,
+      contact_email:     formData.owner.contact,
+      monthly_rent:      Number(formData.price || 0),
+      occupancy_status:  formData.occupancyStatus,
+      payment_status:    formData.paymentStatus,
     });
 
     setRoomsList((prevRooms) =>

@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { X, CreditCard, CheckCircle2, Printer } from 'lucide-react'
+// handle the API call to create a booking when payment is successful
+//in bookingAPI.js, create a function that sends a POST request to the backend to create a new booking with the provided details (room_id, tenant_name, tenant_email, start_date, end_date, total_amount)
 import { createBooking } from '@/lib/bookingApi'
 
 export default function PaymentModal({

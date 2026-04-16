@@ -79,6 +79,20 @@ export async function createOwnerRoom(payload) {
   return await response.json();
 }
 
+export async function updateOwnerRoom(roomId, payload) {
+  const response = await fetch(`${API_BASE_URL}/owner/rooms/${roomId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getApiErrorMessage(response, 'Failed to update room'));
+  }
+
+  return await response.json();
+}
+
 export async function updateOwnerRoomStatus(roomId, payload) {
   const response = await fetch(
     `${API_BASE_URL}/owner/rooms/${roomId}/status`,
@@ -117,6 +131,7 @@ export async function deleteOwnerRoom(roomId) {
 const ownerDashboardApi = {
   fetchOwnerDashboard,
   createOwnerRoom,
+  updateOwnerRoom,
   updateOwnerRoomStatus,
   deleteOwnerRoom,
 };

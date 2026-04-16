@@ -63,6 +63,7 @@ class OwnerDashboardController extends Controller
                     'id'              => $room->id,
                     'roomNumber'      => $room->room_number,
                     'name'            => $room->name,
+                    'ownerName'       => $room->owner_name,
                     'type'            => $room->type,
                     'monthlyRent'     => (float) $room->monthly_rent,
                     'beds'            => $room->beds,
@@ -130,6 +131,7 @@ class OwnerDashboardController extends Controller
     {
         $validated = $request->validate([
             'room_number'   => 'nullable|string',
+            'owner_name'   => 'nullable|string',
             'name'          => 'sometimes|required|string',
             'type'          => 'nullable|string',
             'monthly_rent'  => 'sometimes|required|numeric|min:0',
@@ -153,6 +155,7 @@ class OwnerDashboardController extends Controller
                 'id'              => $room->id,
                 'roomNumber'      => $room->room_number,
                 'name'            => $room->name,
+                'ownerName'       => $room->owner_name,
                 'type'            => $room->type,
                 'monthlyRent'     => (float) $room->monthly_rent,
                 'beds'            => $room->beds,

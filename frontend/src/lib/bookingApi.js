@@ -11,11 +11,11 @@ async function getApiErrorMessage(response, fallback) {
 
 export async function fetchOwnerBookings(ownerId, status = null) {
   const query = status ? `?owner_id=${ownerId}&status=${status}` : `?owner_id=${ownerId}`;
-  const response = await fetch(`${API_BASE_URL}/owner/bookings${query}`, {
+  const response = await fetch(`${API_BASE_URL}/owner/bookings${query}`, { //send GET request to backend to fetch bookings for the owner with optional status filter
     cache: 'no-store',
   });
   if (!response.ok) throw new Error(await getApiErrorMessage(response, 'Failed to fetch bookings'));
-  return await response.json();
+  return await response.json(); //return data in the format { bookings: [...] } to frontend
 }
 
 export async function fetchPendingCount(ownerId) {
