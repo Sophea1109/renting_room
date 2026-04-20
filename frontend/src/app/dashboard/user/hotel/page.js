@@ -1,21 +1,30 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import HotelCard from '@/components/HotelCard'
-import { hotels as mockHotels } from '@/data/hotelData'
+import { fetchHotels } from '@/lib/hotelApi'
 
 export default function HotelPage() {
+  const [hotels, setHotels] = useState([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
 
-  const locations = useMemo(() => {
-    const allLocations = mockHotels.map(h => h.location)
-    return [...new Set(allLocations)]
+  useEffect(() => {
+    fetchHotels()
+      .then(data => setHotels(data.hotels ?? []))
+      .catch(() => setHotels([]))
+      .finally(() => setLoading(false))
   }, [])
 
-  const filteredHotels = mockHotels.filter(hotel => {
+  const locations = useMemo(() => {
+    const allLocations = hotels.map(h => h.location)
+    return [...new Set(allLocations)]
+  }, [hotels])
+
+  const filteredHotels = hotels.filter(hotel => {
     const matchesTitle = hotel.name.toLowerCase().includes(search.toLowerCase())
     const matchesLocation = locationFilter === '' || hotel.location === locationFilter
     return matchesTitle && matchesLocation
@@ -74,8 +83,12 @@ export default function HotelPage() {
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Featured Stays</h2>
           <span className="text-gray-500 text-sm font-medium">{filteredHotels.length} hotels found</span>
         </div>
-        
-        {filteredHotels.length === 0 ? (
+
+        {loading ? (
+          <div className="text-center py-20">
+            <p className="text-xl text-gray-500">Loading hotels...</p>
+          </div>
+        ) : filteredHotels.length === 0 ? (
           <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700">
             <p className="text-xl text-gray-500">No hotels found matching your criteria.</p>
           </div>

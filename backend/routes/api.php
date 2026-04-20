@@ -6,6 +6,7 @@ use App\Http\Controllers\OwnerDashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\HotelController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -23,6 +24,10 @@ Route::middleware('auth:sanctum')->group(function () {
 // Public room listing for tenants
 Route::get('/rooms', [RoomController::class, 'index']);
 Route::get('/rooms/{room}', [RoomController::class, 'show']);
+
+// Public hotel listing for tenants
+Route::get('/hotels', [HotelController::class, 'index']);
+Route::get('/hotels/{room}', [HotelController::class, 'show']);
 
 Route::get('/owner/dashboard', [OwnerDashboardController::class, 'index']);
 Route::post('/owner/rooms', [OwnerDashboardController::class, 'store']);            // create room

@@ -13,7 +13,7 @@ class RoomController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Room::with('owner');
+        $query = Room::with('owner')->where('type', '!=', 'hotel');
 
         // Search by name or description
         if ($request->has('search') && $request->search) {

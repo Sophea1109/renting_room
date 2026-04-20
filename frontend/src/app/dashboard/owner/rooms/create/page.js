@@ -38,7 +38,8 @@ export default function CreateUpdateRoomPage({ params }) {
   const [formData, setFormData] = useState({
     roomNumber: '',
     name: '',
-    type: 'Single',
+    type: 'room',
+    location: '',
     price: '',
     beds: 1,
     baths: 1,
@@ -71,9 +72,9 @@ export default function CreateUpdateRoomPage({ params }) {
         owner_id: user.id,
         room_number: formData.roomNumber || null,
         name: formData.name || formData.roomNumber || 'Room',
-        type: formData.type || 'Single',
+        type: formData.type || 'room',
         description: formData.description || '',
-        location: 'Not specified',
+        location: formData.location || 'Not specified',
         contact_email: user?.email || '',
         image: formData.images?.[0]?.url || '',
         amenities: formData.amenities || [],
@@ -171,7 +172,12 @@ export default function CreateUpdateRoomPage({ params }) {
     fileInputRef.current.click();
   };
 
-  const roomTypes = ['Single', 'Double', 'Suite', 'Family', 'Penthouse'];
+  const roomTypes = ['room', 'hotel'];
+  const locations = [
+    'Chamkarmon', 'Toul Kork', '7 Makara', 'Boeung Keng Kang',
+    'Sen Sok', 'Chroy Changvar', 'Dangkao', 'Meanchey',
+    'Phnom Penh', 'Siem Reap', 'Sihanoukville', 'Kampot',
+  ];
   const statuses = ['Available', 'Occupied', 'Maintenance', 'Reserved', 'Cleaning'];
   const allAmenities = ['WiFi', 'AC', 'TV', 'Mini Fridge', 'Kitchen', 'Balcony', 'Jacuzzi', 'Coffee Maker', 'Safe', 'Laundry', 'Breakfast', 'Parking', 'Gym Access', 'Swimming Pool', 'Room Service'];
 
@@ -251,7 +257,24 @@ export default function CreateUpdateRoomPage({ params }) {
                         required
                       >
                         {roomTypes.map(type => (
-                          <option key={type} value={type}>{type}</option>
+                          <option key={type} value={type}>{type === 'hotel' ? 'Hotel' : 'Room'}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Location *
+                      </label>
+                      <select
+                        name="location"
+                        value={formData.location}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        required
+                      >
+                        <option value="">Select Location</option>
+                        {locations.map(loc => (
+                          <option key={loc} value={loc}>{loc}</option>
                         ))}
                       </select>
                     </div>
