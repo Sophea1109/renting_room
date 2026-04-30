@@ -60,10 +60,10 @@ export default function RoomDetailPage() {
   const [room, setRoom] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [totalPrice, setTotalPrice] = useState(0)
-  const [months, setMonths] = useState(1)
+  // const [startDate, setStartDate] = useState('')
+  // const [endDate, setEndDate] = useState('')
+  // const [totalPrice, setTotalPrice] = useState(0)
+  // const [months, setMonths] = useState(1)
 
   useEffect(() => {
     if (!params?.id) return
@@ -74,7 +74,7 @@ export default function RoomDetailPage() {
         if (!res.ok) throw new Error('Room not found')
         const data = await res.json()
         setRoom(data)
-        setTotalPrice(data.monthly_rent || 0)
+        // setTotalPrice(data.monthly_rent || 0)
       } catch (err) {
         setRoom(null)
       } finally {
@@ -84,16 +84,16 @@ export default function RoomDetailPage() {
     fetchRoom()
   }, [params?.id])
 
-  useEffect(() => {
-    if (startDate && endDate && room) {
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth())
-      const m = monthsDiff > 0 ? monthsDiff : 1
-      setMonths(m)
-      setTotalPrice(room.monthly_rent * m)
-    }
-  }, [startDate, endDate, room])
+  // useEffect(() => {
+  //   if (startDate && endDate && room) {
+  //     const start = new Date(startDate)
+  //     const end = new Date(endDate)
+  //     const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth())
+  //     const m = monthsDiff > 0 ? monthsDiff : 1
+  //     setMonths(m)
+  //     setTotalPrice(room.monthly_rent * m)
+  //   }
+  // }, [startDate, endDate, room])
 
   if (loading) return (
     <div className="min-h-screen">
@@ -234,7 +234,7 @@ export default function RoomDetailPage() {
               )}
 
               {/* Date Pickers */}
-              <div className="grid grid-cols-1 gap-4 mb-6">
+              {/* <div className="grid grid-cols-1 gap-4 mb-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Move-in Date</label>
                   <input
@@ -257,10 +257,10 @@ export default function RoomDetailPage() {
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
-              </div>
+              </div> */}
 
               {/* Price Summary */}
-              <div className="space-y-4 mb-6">
+              {/* <div className="space-y-4 mb-6">
                 <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
                   <span>Price per month</span>
                   <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{room.price}</span>
@@ -273,15 +273,17 @@ export default function RoomDetailPage() {
                   <span className="font-bold text-gray-900 dark:text-white">Total</span>
                   <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">${totalPrice}</span>
                 </div>
-              </div>
+              </div> */}
 
               <button
                 onClick={() => setIsPaymentOpen(true)}
-                disabled={room.occupancy_status === 'occupied' || !startDate || !endDate}
+                // 
+                disabled={room.occupancy_status === 'occupied'}
+                //
                 className="w-full px-4 py-3 bg-emerald-500 text-white rounded-lg mb-2 hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                title={room.occupancy_status === 'occupied' ? 'This room is currently occupied' : (!startDate || !endDate ? 'Please select move-in and move-out dates first' : '')}
+                title={room.occupancy_status === 'occupied' ? 'This room is currently occupied' : ''}
               >
-                {room.occupancy_status === 'occupied' ? 'Room Occupied' : (!startDate || !endDate ? 'Select Dates to Rent' : 'Rent Now')}
+                {room.occupancy_status === 'occupied' ? 'Room Occupied' : 'Request to Rent Now'}
               </button>
               <button className="w-full px-4 py-3 bg-white/80 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border border-emerald-500 hover:bg-white transition">
                 Message Owner
@@ -298,13 +300,13 @@ export default function RoomDetailPage() {
         onClose={() => setIsPaymentOpen(false)}
         item={room}
         type="room"
-        dates={{ startDate, endDate }}
-        totalPrice={`$${totalPrice}`}
+        // dates={{ startDate, endDate }}
+        // totalPrice={`$${totalPrice}`}
         roomId={room.id}
         ownerId={room.owner_id}
-        startDate={startDate}
-        endDate={endDate}
-        totalAmount={totalPrice}
+        // startDate={startDate}
+        // endDate={endDate}
+        // totalAmount={totalPrice}
       />
     </div>
   )

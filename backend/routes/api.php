@@ -29,6 +29,7 @@ Route::get('/rooms/{room}', [RoomController::class, 'show']);
 Route::get('/hotels', [HotelController::class, 'index']);
 Route::get('/hotels/{room}', [HotelController::class, 'show']);
 
+// owner dashboard and rooms
 Route::get('/owner/dashboard', [OwnerDashboardController::class, 'index']);
 Route::post('/owner/rooms', [OwnerDashboardController::class, 'store']);            // create room
 Route::patch('/owner/rooms/{room}', [OwnerDashboardController::class, 'update']);   // edit room details
@@ -36,8 +37,18 @@ Route::patch('/owner/rooms/{room}/status', [OwnerDashboardController::class, 'up
 Route::delete('/owner/rooms/{room}', [OwnerDashboardController::class, 'destroy']); // delete room
 
 // Booking routes
-Route::post('/bookings', [BookingController::class, 'store']);                              // tenant submits booking
+// tenant submit
+Route::post('/bookings', [BookingController::class, 'store']);
+
+// owner sides, recived and managed
 Route::get('/owner/bookings', [BookingController::class, 'index']);                         // owner views all bookings
 Route::get('/owner/bookings/pending-count', [BookingController::class, 'pendingCount']);    // notification badge count
 Route::patch('/owner/bookings/{booking}/approve', [BookingController::class, 'approve']);   // owner approves
 Route::patch('/owner/bookings/{booking}/reject', [BookingController::class, 'reject']);     // owner rejects
+
+Route::get('/debug-time', function () {
+    return response()->json([
+        'now' => \Carbon\Carbon::now()->toDateTimeString(),
+        'timezone' => config('app.timezone'),
+    ]);
+});

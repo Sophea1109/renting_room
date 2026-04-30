@@ -8,6 +8,7 @@ use App\Models\RoomPayment;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class OwnerDashboardController extends Controller
@@ -245,14 +246,23 @@ class OwnerDashboardController extends Controller
 
     private function buildMonthlyRevenue($payments): array
     {
+        // changed because of duplicated March. Important for calculating the months correctly, otherwise the growth rate will be wrong and cause dashboard to crash
         $months = collect(range(5, 0))->map(function ($offset) {
-            return Carbon::now()->subMonths($offset)->startOfMonth();
-        })->push(Carbon::now()->startOfMonth());
+            return Carbon::now()->startOfMonth()->subMonths($offset);
+        });
+        // this error is fine, just for checking laravel.log
+        \Log::info('Months generated: ' . $months->map(fn($m) => $m->format('Y-m'))->implode(', '));
+        // the one below has alway been broken because we're trying to compare a carbon obj to string
+        // ->whereBetween('paid_at', [$monthStart->toDateString(), $monthEnd->toDateString()])
+        // ->push(Carbon::now()->startOfMonth());
 
         return $months->map(function (Carbon $monthStart) use ($payments) {
             $monthEnd = $monthStart->copy()->endOfMonth();
             $monthTotal = (float) $payments
-                ->whereBetween('paid_at', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                ->filter(function ($payment) use ($monthStart, $monthEnd) {
+                    $paidAt = Carbon::parse($payment->paid_at)->toDateString();
+                    return $paidAt >= $monthStart->toDateString() && $paidAt <= $monthEnd->toDateString();
+                })
                 ->sum('amount');
 
             return [

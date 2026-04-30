@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Room;
 use Illuminate\Http\Request;
+use App\Models\Booking;
 
 class HotelController extends Controller
 {
@@ -29,6 +30,33 @@ class HotelController extends Controller
         $hotels = $query->get()->map(fn($room) => $this->formatHotel($room));
 
         return response()->json(['hotels' => $hotels]);
+    }
+
+    public function store(Room $room, Request $request) {
+        $validated = $request->validated([
+            'room_id' => 'required|exists:rooms,id',
+            'tenant_name' => 'required|string',
+            'tenant_email' => 'required|email'
+        ]);
+
+        // can't book an already occupied room
+        if ($room->occupancy_status === 'occupied') {
+            return response()->json([
+                'message' => 'This room is already occupied and not available for booking.',
+            ], 422);
+        }
+
+        // show room that's been approve
+        $HotelApprovedRoom = Booking::where('room_id', $room->id)->where('status', 'approved')->exists();
+        if ($HotelApprovedRoom) {
+            return response()->json(['message' => 'This room has been approve by the tenant!'], 422);
+        }
+
+        // avoid booking again after booking once
+        $duplicateBooking = Booking::where('room_id', $room->id)->where('tenant_email', $validated['tenant_email'])->where('status', 'pending')->exists();
+        if ($duplicateBooking) {
+            return response()->json(['message' => 'This room is still pending, please wait.'], 422);
+        }
     }
 
     /**

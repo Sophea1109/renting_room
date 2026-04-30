@@ -54,37 +54,37 @@ export default function HotelDetailPage() {
   const [hotel, setHotel] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  // const [startDate, setStartDate] = useState('')
+  // const [endDate, setEndDate] = useState('')
   const [totalPrice, setTotalPrice] = useState(0)
-  const [days, setDays] = useState(1)
+  // const [days, setDays] = useState(1)
 
   useEffect(() => {
     if (!params?.id) return
     fetchHotel(params.id)
       .then(data => {
         setHotel(data)
-        setTotalPrice(data.monthly_rent || parseInt(data.price.replace(/\D/g, ''), 10))
+        // setTotalPrice(data.monthly_rent || parseInt(data.price.replace(/\D/g, ''), 10))
       })
       .catch(() => setHotel(null))
       .finally(() => setLoading(false))
   }, [params?.id])
 
-  useEffect(() => {
-    if (startDate && endDate && hotel) {
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24))
-      const basePrice = hotel.monthly_rent || parseInt(hotel.price.replace(/\D/g, ''), 10)
-      if (diffDays > 0) {
-        setDays(diffDays)
-        setTotalPrice(basePrice * diffDays)
-      } else {
-        setDays(1)
-        setTotalPrice(basePrice)
-      }
-    }
-  }, [startDate, endDate, hotel])
+  // useEffect(() => {
+  //   if (startDate && endDate && hotel) {
+  //     const start = new Date(startDate)
+  //     const end = new Date(endDate)
+  //     const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24))
+  //     const basePrice = hotel.monthly_rent || parseInt(hotel.price.replace(/\D/g, ''), 10)
+  //     if (diffDays > 0) {
+  //       setDays(diffDays)
+  //       setTotalPrice(basePrice * diffDays)
+  //     } else {
+  //       setDays(1)
+  //       setTotalPrice(basePrice)
+  //     }
+  //   }
+  // }, [startDate, endDate, hotel])
 
   if (loading) return (
     <div className="min-h-screen">
@@ -112,7 +112,7 @@ export default function HotelDetailPage() {
   )
 
   const isOccupied = hotel.occupancy_status === 'occupied'
-  const canBook = !isOccupied && startDate && endDate
+  // const canBook = !isOccupied && startDate && endDate
   const coords = getCoordinates(hotel.location)
 
   return (
@@ -236,13 +236,13 @@ export default function HotelDetailPage() {
               {/* Occupied banner */}
               {isOccupied && (
                 <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-xl text-center">
-                  <span className="text-red-600 font-semibold text-sm">🔒 This hotel is fully booked</span>
-                  <p className="text-red-400 text-xs mt-1">Not available for new bookings at this time</p>
+                  <span className="text-red-600 font-semibold text-sm">This hotel is fully booked!</span>
+                  <p className="text-red-400 text-xs mt-1">Not available for new bookings at this time!</p>
                 </div>
               )}
 
               {/* Date pickers */}
-              <div className="space-y-4 mb-8">
+              {/* <div className="space-y-4 mb-8">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Check-in Date</label>
                   <input
@@ -265,17 +265,16 @@ export default function HotelDetailPage() {
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#235347] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
-              </div>
+              </div> */}
 
               {/* Price summary */}
-              <div className="space-y-4">
+              {/* <div className="space-y-4">
                 <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
                   <span>Price per night</span>
                   <span className="text-xl font-bold text-[#0B2B26] dark:text-[#DAF1DE]">{hotel.price}</span>
                 </div>
                 <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
                   <span>Total nights</span>
-                  <span className="font-bold text-[#235347] dark:text-[#DAF1DE]">{days} {days > 1 ? 'Nights' : 'Night'}</span>
                 </div>
                 <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
                   <span>Service fee</span>
@@ -283,17 +282,16 @@ export default function HotelDetailPage() {
                 </div>
                 <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
                   <span className="font-bold text-gray-900 dark:text-white">Total</span>
-                  <span className="text-2xl font-black text-[#235347] dark:text-[#DAF1DE]">${totalPrice}</span>
                 </div>
-              </div>
+              </div> */}
 
               <button
                 onClick={() => setIsPaymentOpen(true)}
-                disabled={!canBook}
-                title={isOccupied ? 'This hotel is fully booked' : (!startDate || !endDate ? 'Please select check-in and check-out dates' : '')}
+                disabled={isOccupied}
+                title={isOccupied ? 'This hotel is fully booked' : ''}
                 className="w-full mt-8 px-4 py-4 bg-[#0B2B26] text-[#DAF1DE] font-black rounded-2xl hover:bg-[#235347] transition-all transform hover:scale-[1.02] active:scale-95 shadow-xl shadow-[#0B2B26]/20 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                {isOccupied ? 'Fully Booked' : (!startDate || !endDate ? 'Select Dates to Book' : 'Reserve Now')}
+                {isOccupied ? 'Fully Booked' : 'Reserve Now'}
               </button>
 
               <button className="w-full mt-3 px-4 py-4 bg-transparent text-[#235347] dark:text-[#DAF1DE] font-bold rounded-2xl border-2 border-[#235347] hover:bg-[#DAF1DE]/20 transition-all uppercase tracking-widest text-sm">
@@ -315,13 +313,13 @@ export default function HotelDetailPage() {
         onClose={() => setIsPaymentOpen(false)}
         item={hotel}
         type="hotel"
-        dates={{ startDate, endDate }}
-        totalPrice={`$${totalPrice}`}
+        // dates={{ startDate, endDate }}
+        // totalPrice={`$${totalPrice}`}
         roomId={hotel.id}
         ownerId={hotel.owner_id}
-        startDate={startDate}
-        endDate={endDate}
-        totalAmount={totalPrice}
+        // startDate={startDate}
+        // endDate={endDate}
+        // totalAmount={totalPrice}
       />
     </div>
   )

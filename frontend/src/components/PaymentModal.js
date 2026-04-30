@@ -37,11 +37,11 @@ export default function PaymentModal({
     e.preventDefault()
     setBookingError(null)
 
-    // Require dates before submitting
-    if (!startDate || !endDate) {
-      setBookingError('Please select move-in and move-out dates before paying.')
-      return
-    }
+    // tenant don't decide dates
+    // if (!startDate || !endDate) {
+    //   setBookingError('Please select move-in and move-out dates before paying.')
+    //   return
+    // }
 
     setStep('processing')
 
@@ -50,9 +50,9 @@ export default function PaymentModal({
         room_id:      roomId,
         tenant_name:  name,
         tenant_email: email,
-        start_date:   startDate,
-        end_date:     endDate,
-        total_amount: totalAmount || 0,
+        // start_date:   startDate,
+        // end_date:     endDate,
+        // total_amount: totalAmount || 0,
       })
       setStep('success')
     } catch (err) {
@@ -214,7 +214,6 @@ export default function PaymentModal({
                 </div>
                 <img src="/images/logo.png" alt="Logo" className="h-10 opacity-50 grayscale" />
               </div>
-
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Service</span>
@@ -232,7 +231,7 @@ export default function PaymentModal({
                   <span className="text-gray-500">Rule</span>
                   <span className="font-medium text-[#235347] dark:text-[#DAF1DE]">{type === 'hotel' ? 'Min 1 Day' : 'Min 1 Month'}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                {/* <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Date</span>
                   <span className="font-medium text-gray-900 dark:text-white">{new Date().toLocaleDateString()}</span>
                 </div>
@@ -241,9 +240,9 @@ export default function PaymentModal({
                     <span className="text-gray-500">Duration</span>
                     <span className="font-medium text-[#235347] dark:text-[#DAF1DE]">{dates.startDate} to {dates.endDate}</span>
                   </div>
-                )}
+                )} */}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                  <span className="font-black text-gray-900 dark:text-white uppercase tracking-wider">Total Paid</span>
+                  <span className="font-black text-gray-900 dark:text-white uppercase tracking-wider">Monthly Rate</span>
                   <span className="text-2xl font-black text-[#0B2B26] dark:text-[#DAF1DE]">{totalPrice || item?.price}</span>
                 </div>
               </div>

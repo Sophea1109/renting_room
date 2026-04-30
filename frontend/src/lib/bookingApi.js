@@ -26,10 +26,11 @@ export async function fetchPendingCount(ownerId) {
   return await response.json();
 }
 
-export async function approveBooking(bookingId) {
+export async function approveBooking(bookingId, startDate, endDate) {
   const response = await fetch(`${API_BASE_URL}/owner/bookings/${bookingId}/approve`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ start_date: startDate, end_date: endDate }),
   });
   if (!response.ok) throw new Error(await getApiErrorMessage(response, 'Failed to approve booking'));
   return await response.json();

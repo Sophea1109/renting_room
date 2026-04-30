@@ -33,6 +33,8 @@ export default function BookingRequestsPage() {
   const [counts, setCounts] = useState({ all: 0, pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  // multiple bookings 
+  const [bookingDates, setBookingDates] = useState({}); // { [bookingId]: { startDate, endDate } }
 
   const loadBookings = useCallback(async () => {
     if (!user?.id) {
@@ -56,10 +58,10 @@ export default function BookingRequestsPage() {
     loadBookings();
   }, [loadBookings]);
 
-  const handleApprove = async (bookingId) => {
+  const handleApprove = async (bookingId, startDate, endDate) => {
     setActionLoading(bookingId);
     try {
-      await approveBooking(bookingId);
+      await approveBooking(bookingId, startDate, endDate);
       toast.success('Booking approved! Room is now occupied.');
       loadBookings();
     } catch (err) {
@@ -183,12 +185,12 @@ export default function BookingRequestsPage() {
                           </td>
 
                           {/* Dates */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-1 text-gray-600">
+                          <td className="px-6 py-4 min-w-[200px]">
+                            <div className="flex items-center gap-1 text-black whitespace-nowrap">
                               <Calendar size={14} className="text-gray-400" />
-                              <span>{booking.start_date}</span>
+                              <span>{booking.start_date || 'No start date'}</span>
                             </div>
-                            <div className="text-xs text-gray-400 mt-0.5 ml-4">to {booking.end_date}</div>
+                            <div className="text-xs text-black mt-0.5 ml-4 whitespace-nowrap">to {booking.end_date || 'No end date'}</div>
                           </td>
 
                           {/* Amount */}
@@ -216,8 +218,26 @@ export default function BookingRequestsPage() {
                           <td className="px-6 py-4">
                             {booking.status === 'pending' ? (
                               <div className="flex items-center gap-2">
+                                <input
+                                  type="date"
+                                  className="text-black appearance-none"
+                                  value={bookingDates[booking.id]?.startDate || ''}
+                                  onChange={(e) => setBookingDates({...bookingDates, [booking.id]: {...bookingDates[booking.id], startDate: e.target.value}})}
+                                />
+
+                                <input
+                                  type="date"
+                                  className="text-black appearance-none"
+                                  value={bookingDates[booking.id]?.endDate || ''}
+                                  onChange={(e) => setBookingDates({...bookingDates, [booking.id]: {...bookingDates[booking.id], endDate: e.target.value}})}
+                                />
+
                                 <button
-                                  onClick={() => handleApprove(booking.id)}
+                                  onClick={() => handleApprove(
+                                    booking.id,
+                                    bookingDates[booking.id]?.startDate,
+                                    bookingDates[booking.id]?.endDate
+                                  )} 
                                   disabled={actionLoading === booking.id}
                                   className="flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
                                 >
