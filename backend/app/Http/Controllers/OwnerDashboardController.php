@@ -86,6 +86,7 @@ class OwnerDashboardController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'owner_id'         => 'required|integer|exists:users,id',
             'room_number'      => 'nullable|string',
             'name'             => 'required|string',
             'type'             => 'nullable|string',

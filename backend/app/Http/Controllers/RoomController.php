@@ -78,9 +78,9 @@ class RoomController extends Controller
             'occupancy_status' => $room->occupancy_status,
             'owner_id'         => $room->owner_id,
             'owner' => [
-                'name'    => $room->owner->name ?? 'Owner',
+                'name'    => $room->owner?->name ?? 'Owner',
                 'avatar'  => '/users/default-avatar.svg',
-                'contact' => $room->contact_email ?? $room->owner->email ?? '',
+                'contact' => $room->contact_email ?? $room->owner?->email ?? '',
             ],
         ];
     }

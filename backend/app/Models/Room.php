@@ -11,7 +11,9 @@ class Room extends Model
 {
     use HasFactory;
 
+    // fillable control what the laravel can write!!
     protected $fillable = [
+        'owner_id',
         'owner_name',
         'room_number',
         'name',

@@ -20,9 +20,6 @@ class BookingController extends Controller
             'room_id'      => 'required|exists:rooms,id',
             'tenant_name'  => 'required|string',
             'tenant_email' => 'required|email',
-            // 'start_date'   => 'required|date',
-            // 'end_date'     => 'required|date|after:start_date',
-            // 'total_amount' => 'required|numeric|min:0',
         ]);
 
         $room = Room::findOrFail($validated['room_id']);
@@ -63,9 +60,6 @@ class BookingController extends Controller
             'owner_id'     => $room->owner_id,
             'tenant_name'  => $validated['tenant_name'],
             'tenant_email' => $validated['tenant_email'],
-            // 'start_date'   => $validated['start_date'],
-            // 'end_date'     => $validated['end_date'],
-            // 'total_amount' => $validated['total_amount'],
             'status'       => 'pending',
         ]);
 
@@ -139,7 +133,8 @@ class BookingController extends Controller
         // check data after owner approve the booking
         // important because need for total amount calculation
         $validatedBooking = $request->validate([
-            'start_date'   => 'required|date',
+            // now move in date can't be in the past
+            'start_date'   => 'required|date|after_or_equal:today',
             'end_date'     => 'required|date|after:start_date',
         ]);
         // totalAmount is calculate here instead of at the frontend like before
