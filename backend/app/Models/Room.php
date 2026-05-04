@@ -12,7 +12,6 @@ class Room extends Model
     use HasFactory;
 
     protected $fillable = [
-        'owner_id',
         'owner_name',
         'room_number',
         'name',
