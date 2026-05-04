@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FiUser, FiMenu, FiX, FiSearch, FiBell, FiMessageCircle } from "react-icons/fi";
 import { useUser } from "@/context/UserContext";
 
@@ -15,6 +16,13 @@ export default function Header() {
   const [sticky, setSticky] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      router.push(`/dashboard/user/rooms?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
   const [messagesCount, setMessagesCount] = useState(0); // mock messages count
   const [notifications, setNotifications] = useState([]); // mock notifications
   const [showNotifications, setShowNotifications] = useState(false);
@@ -79,6 +87,7 @@ export default function Header() {
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleSearch}
               className="w-full pl-10 pr-4 py-2 rounded-full border border-[#DAF1DE]/20 bg-white/10 text-[#DAF1DE] placeholder-[#DAF1DE]/40 focus:outline-none focus:ring-2 focus:ring-[#DAF1DE]/50 backdrop-blur-sm transition"
             />
           </div>

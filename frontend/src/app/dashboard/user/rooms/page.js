@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo} from 'react'
+import { useSearchParams } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import RoomCard from '@/components/RoomCard'
@@ -11,7 +12,8 @@ export default function RoomsPage() {
   const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [search, setSearch] = useState('')
+  const searchParams = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('search') || '')
   const [locationFilter, setLocationFilter] = useState('')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
@@ -38,7 +40,7 @@ export default function RoomsPage() {
   }, [rooms])
 
   const filteredRooms = rooms.filter(room => {
-    const matchesTitle = room.title.toLowerCase().includes(search.toLowerCase())
+    const matchesTitle = (room.title || '').toLowerCase().includes(search.toLowerCase())
     const matchesLocation = locationFilter === '' || room.location === locationFilter
     const matchesMinPrice = minPrice === '' || room.monthly_rent >= parseInt(minPrice)
     const matchesMaxPrice = maxPrice === '' || room.monthly_rent <= parseInt(maxPrice)
