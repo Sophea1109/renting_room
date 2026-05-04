@@ -24,7 +24,6 @@ class Room extends Model
         'description',
         'location',
         'contact_email',
-        'image',
         'amenities',
         'images',
         'occupancy_status',

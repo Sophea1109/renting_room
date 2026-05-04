@@ -76,7 +76,7 @@ export default function CreateUpdateRoomPage({ params }) {
         description: formData.description || '',
         location: formData.location || 'Not specified',
         contact_email: user?.email || '',
-        image: formData.images?.[0]?.url || '',
+        images: formData.images,
         amenities: formData.amenities || [],
         monthly_rent: Number(formData.price || 0),
         beds: Number(formData.beds || 1),
@@ -119,6 +119,12 @@ export default function CreateUpdateRoomPage({ params }) {
 
     // Simulate upload
     setUploading(true);
+    const toBase64 = (file) => new Promise((resolve)=>{
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    })
+
     const newPreviews = files.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
@@ -126,18 +132,24 @@ export default function CreateUpdateRoomPage({ params }) {
       name: file.name
     }));
 
-    setTimeout(() => {
-      setImagePreviews(prev => [...prev, ...newPreviews]);
+    const based64Images = await Promise.all(files.map(toBase64));
+
+    // setTimeout(() => {
+    //   setImagePreviews(prev => [...prev, ...newPreviews]);
+    //   setFormData(prev => ({
+    //     ...prev,
+    //     images: [...prev.images, ...based64Images]
+    //   }));
+    //   setUploading(false);
+    //   toast.success(`${files.length} image(s) uploaded`);
+    // }, 1000);
+    setImagePreviews(prev => [...prev, ...newPreviews]);
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...files.map(file => ({
-          name: file.name,
-          url: URL.createObjectURL(file)
-        }))]
+        images: [...prev.images, ...based64Images]
       }));
       setUploading(false);
       toast.success(`${files.length} image(s) uploaded`);
-    }, 1000);
   };
 
   const removeImage = (id) => {

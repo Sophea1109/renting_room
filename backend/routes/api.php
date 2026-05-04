@@ -29,7 +29,7 @@ Route::get('/rooms/{room}', [RoomController::class, 'show']);
 Route::get('/hotels', [HotelController::class, 'index']);
 Route::get('/hotels/{room}', [HotelController::class, 'show']);
 
-// owner dashboard and rooms
+// owner dashboard and rooms management
 Route::get('/owner/dashboard', [OwnerDashboardController::class, 'index']);
 Route::post('/owner/rooms', [OwnerDashboardController::class, 'store']);            // create room
 Route::patch('/owner/rooms/{room}', [OwnerDashboardController::class, 'update']);   // edit room details
@@ -37,7 +37,7 @@ Route::patch('/owner/rooms/{room}/status', [OwnerDashboardController::class, 'up
 Route::delete('/owner/rooms/{room}', [OwnerDashboardController::class, 'destroy']); // delete room
 
 // Booking routes
-// tenant submit
+// tenant submit both for rooms and hotels
 Route::post('/bookings', [BookingController::class, 'store']);
 
 // owner sides, recived and managed

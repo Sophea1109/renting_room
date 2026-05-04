@@ -23,7 +23,7 @@ export default function HotelCard({ hotel }) {
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
         <span className="absolute bottom-2 left-2 bg-yellow-400 text-black px-3 py-1 rounded-lg text-sm font-semibold shadow">
-          🏨 {hotel.price}
+          {hotel.price}
         </span>
         <div className="absolute top-2 right-2 flex items-center bg-black/40 backdrop-blur-md px-2 py-1 rounded-lg text-white text-xs">
           <Star className="w-3 h-3 text-yellow-400 fill-current mr-1" />

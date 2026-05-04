@@ -27,7 +27,7 @@ class BookingController extends Controller
 
         $room = Room::findOrFail($validated['room_id']);
 
-        // Block booking if room is already occupied
+        // Block booking if room/hotel is already occupied
         if ($room->occupancy_status === 'occupied') {
             return response()->json([
                 'message' => 'This room is already occupied and not available for booking.',

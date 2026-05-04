@@ -32,32 +32,32 @@ class HotelController extends Controller
         return response()->json(['hotels' => $hotels]);
     }
 
-    public function store(Room $room, Request $request) {
-        $validated = $request->validated([
-            'room_id' => 'required|exists:rooms,id',
-            'tenant_name' => 'required|string',
-            'tenant_email' => 'required|email'
-        ]);
+    // public function store(Room $room, Request $request) {
+    //     $validated = $request->validate([
+    //         'room_id' => 'required|exists:rooms,id',
+    //         'tenant_name' => 'required|string',
+    //         'tenant_email' => 'required|email'
+    //     ]);
 
-        // can't book an already occupied room
-        if ($room->occupancy_status === 'occupied') {
-            return response()->json([
-                'message' => 'This room is already occupied and not available for booking.',
-            ], 422);
-        }
+    //     // can't book an already occupied room
+    //     if ($room->occupancy_status === 'occupied') {
+    //         return response()->json([
+    //             'message' => 'This room is already occupied and not available for booking.',
+    //         ], 422);
+    //     }
 
-        // show room that's been approve
-        $HotelApprovedRoom = Booking::where('room_id', $room->id)->where('status', 'approved')->exists();
-        if ($HotelApprovedRoom) {
-            return response()->json(['message' => 'This room has been approve by the tenant!'], 422);
-        }
+    //     // show room that's been approve
+    //     $HotelApprovedRoom = Booking::where('room_id', $room->id)->where('status', 'approved')->exists();
+    //     if ($HotelApprovedRoom) {
+    //         return response()->json(['message' => 'This room has been approve by the tenant!'], 422);
+    //     }
 
-        // avoid booking again after booking once
-        $duplicateBooking = Booking::where('room_id', $room->id)->where('tenant_email', $validated['tenant_email'])->where('status', 'pending')->exists();
-        if ($duplicateBooking) {
-            return response()->json(['message' => 'This room is still pending, please wait.'], 422);
-        }
-    }
+    //     // avoid booking again after booking once
+    //     $duplicateBooking = Booking::where('room_id', $room->id)->where('tenant_email', $validated['tenant_email'])->where('status', 'pending')->exists();
+    //     if ($duplicateBooking) {
+    //         return response()->json(['message' => 'This room is still pending, please wait.'], 422);
+    //     }
+    // }
 
     /**
      * Single hotel detail for tenants.
@@ -75,7 +75,7 @@ class HotelController extends Controller
     private function formatHotel(Room $room): array
     {
         $images = $room->images ?? [];
-        $firstImage = is_array($images) && count($images) > 0 ? $images[0] : '/images/room1.jpg';
+        $firstImage = count($images) > 0 ? $images[0] : '/images/room1.jpg';
 
         return [
             'id'               => $room->id,

@@ -58,7 +58,7 @@ class RoomController extends Controller
     private function formatRoom(Room $room): array
     {
         $images = $room->images ?? [];
-        $firstImage = is_array($images) && count($images) > 0 ? $images[0] : '/images/rest1.jpg';
+        $firstImage = count($images) > 0 ? $images[0] : '/images/rest1.jpg';
 
         return [
             'id'           => $room->id,

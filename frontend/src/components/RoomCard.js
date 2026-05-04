@@ -19,7 +19,7 @@ export default function RoomCard({ room }) {
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
         <span className="absolute bottom-2 left-2 bg-yellow-400 text-black px-3 py-1 rounded-lg text-sm font-semibold shadow">
-          💰 {room.price}
+          {room.price}
         </span>
       </div>
 
