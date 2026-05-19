@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash, FaCheckCircle } from "react-icons/fa";
+import { sendOtpApi, verifyOtpApi } from "@/utils/api";
 
 export default function RegisterPage() {
   const router = useRouter();

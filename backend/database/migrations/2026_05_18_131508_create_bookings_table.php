@@ -23,7 +23,7 @@ return new class extends Migration
             $table->date('end_date')->nullable(); // add null
             $table->decimal('total_price', 10, 2);
             // booking is free again (after tenant not live there anymore)
-            $table->enum('status', ['pending', 'approved', 'rejected', 'completed'])->default('pending');
+            $table->enum('status', ['pending', 'approved', 'rejected', 'completed', 'cancelled'])->default('pending');
             $table->enum('payment_type', ['pay_now', 'pay_later'])->default('pay now');
             $table->string('contract_paylater')->nullable();
             $table->timestamps();

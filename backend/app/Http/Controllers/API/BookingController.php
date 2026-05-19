@@ -18,6 +18,7 @@ class BookingController extends Controller
             'unit_id' => 'required|exists:units,id',
             'start_date'   => 'required|date|after_or_equal:today',
             'end_date'     => 'required|date|after:start_date',
+            'payment_type' => 'required|in:pay_now,pay_later',
         ]);
         $validated['user_id'] = Auth::id();
 
@@ -62,13 +63,21 @@ class BookingController extends Controller
             $totalAmount = ($days / 365) * $unit->price;
         }
 
+        if($validated['payment_type'] === 'pay_later'){
+            $contractPaylater = "Tenant agrees to pay {$totalAmount} THB upon check-in on {$validated['start_date']}";
+        } else{
+            $contractPaylater = null;
+        }
+
         $booking = Booking::create([
             'unit_id' => $validated['unit_id'],
             'user_id' => $validated['user_id'],
             'status' => 'pending',
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
-            'total_price' => $totalAmount
+            'total_price' => $totalAmount,
+            'payment_type' => $validated['payment_type'],
+            'contract_paylater' => $contractPaylater,
         ]);
 
         return response()->json([
@@ -84,7 +93,7 @@ class BookingController extends Controller
 
         $query = Booking::with('unit')
             ->where('user_id', $userId)
-            ->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected', 'cancelled')")
+            ->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected', 'completed', 'cancelled')")
             ->orderBy('created_at', 'desc');
         if ($status && in_array($status, ['pending', 'approved', 'rejected', 'completed', 'cancelled'])) {
             $query->where('status', $status);
@@ -108,6 +117,7 @@ class BookingController extends Controller
         $approvedCount = Booking::where('user_id', $userId)->where('status', 'approved')->count();
         $rejectedCount = Booking::where('user_id', $userId)->where('status', 'rejected')->count();
         $completedCount = Booking::where('user_id', $userId)->where('status', 'completed')->count();
+        $cancelledCount = Booking::where('user_id', $userId)->where('status', 'cancelled')->count();
 
         return response()->json([
             'bookings' => $bookings,
@@ -117,6 +127,7 @@ class BookingController extends Controller
                 'approved' => $approvedCount,                    
                 'rejected' => $rejectedCount,
                 'completed' => $completedCount,
+                'cancelled' => $cancelledCount
             ],
         ]);
     }
