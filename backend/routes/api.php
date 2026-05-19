@@ -5,11 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\UserController;
-
-
 use App\Http\Controllers\API\PropertyController;
 use App\Http\Controllers\API\UnitController;
-use App\Http\Controllers\API\BookingController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -20,6 +18,9 @@ Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/check-telegram', [AuthController::class, 'checkTelegram']);
+Route::post('/forgot-password', [AuthController::class, 'sendResetOtp']);
+Route::post('/verify-reset', [AuthController::class, 'verifyResetOtp']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 /*
 |--------------------------------------------------------------------------
@@ -48,19 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
-    Route::get('/properties', [PropertyController::class, 'index']);
-Route::get('/properties/{id}', [PropertyController::class, 'show']);
-Route::post('/properties', [PropertyController::class, 'store']);
-Route::put('/properties/{id}', [PropertyController::class, 'update']);
-Route::delete('/properties/{id}', [PropertyController::class, 'destroy']);
-   // UNITS
-   Route::get('/units/property/{id}', [UnitController::class, 'byProperty']);
-   Route::post('/units', [UnitController::class, 'store']);
-   Route::put('/units/{id}', [UnitController::class, 'update']);
-   Route::delete('/units/{id}', [UnitController::class, 'destroy']);
+    Route::post('/properties', [PropertyController::class, 'store']);
+    Route::post('/units', [UnitController::class, 'store']);
 
-    // BOOKINGS
-    Route::post('/bookings', [BookingController::class, 'store']);
-    Route::post('/bookings/check-availability', [BookingController::class, 'checkAvailabilityApi']);
-    Route::get('/bookings/my', [BookingController::class, 'userBookings']);
 });

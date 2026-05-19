@@ -38,7 +38,7 @@ class TelegramBotController extends Controller
                 ['user_id' => $user->id],
                 [
                     'telegram_id' => $chatId,
-                    'username' => $message['from']['username'] ?? null,
+                    'telegram_phone_number' => $message['from']['telegram_phone_number'] ?? null,
                 ]
             );
 

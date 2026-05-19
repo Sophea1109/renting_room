@@ -2,84 +2,50 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Unit;
 use App\Models\Property;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Controller;
 
 class UnitController extends Controller
 {
-    // ================= GET UNITS BY PROPERTY =================
-    public function byProperty($id)
-    {
-        $property = Property::findOrFail($id);
-
-        $units = Unit::where('property_id', $property->id)->get();
-
-        return response()->json([
-            'property' => $property,
-            'units' => $units
-        ]);
-    }
-
-    // ================= CREATE UNIT =================
     public function store(Request $request)
-{
-    $request->validate([
-        'property_id' => 'required|exists:properties,id',
-        'name' => 'required|string|max:255',
-        'type' => 'required|string',
-        'capacity' => 'required|integer|min:1',
-        'price_per_night' => 'required|numeric|min:0',
-        'description' => 'nullable|string',
-        'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-    ]);
-
-    $imagePath = null;
-
-    if ($request->hasFile('image')) {
-        $imagePath = $request->file('image')->store('units', 'public');
-    }
-
-    $unit = Unit::create([
-        'property_id' => $request->property_id,
-        'name' => $request->name,
-        'type' => $request->type,
-        'capacity' => $request->capacity,
-        'price_per_night' => $request->price_per_night,
-        'description' => $request->description,
-        'image' => $imagePath,
-        'status' => 'available',
-    ]);
-
-    return response()->json([
-        'message' => 'Unit created successfully',
-        'unit' => $unit
-    ], 201);
-}
-
-    // ================= UPDATE UNIT =================
-    public function update(Request $request, $id)
     {
-        $unit = Unit::findOrFail($id);
+        // Role check
+        if (!in_array(Auth::user()->role, ['admin', 'owner'])) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
 
-        $unit->update($request->all());
-
-        return response()->json([
-            'message' => 'Unit updated successfully',
-            'unit' => $unit
+        $validated = $request->validate([
+            'property_id' => 'required|exists:properties,id',
+            'unit_name' => 'required|string',
+            'bedrooms' => 'nullable|integer',
+            'bathrooms' => 'nullable|integer',
+            'price' => 'required|numeric',
+            'has_kitchen' => 'boolean',
+            'status' => 'nullable|string',
         ]);
-    }
 
-    // ================= DELETE UNIT =================
-    public function destroy($id)
-    {
-        $unit = Unit::findOrFail($id);
+        // Optional: verify ownership
+        $property = Property::findOrFail($validated['property_id']);
 
-        $unit->delete();
+        if (
+            Auth::user()->role !== 'admin' &&
+            $property->user_id !== Auth::id()
+        ) {
+            return response()->json([
+                'message' => 'You do not own this property'
+            ], 403);
+        }
+
+        $unit = Unit::create($validated);
 
         return response()->json([
-            'message' => 'Unit deleted successfully'
+            'message' => 'Unit created successfully',
+            'data' => $unit
         ]);
     }
 }

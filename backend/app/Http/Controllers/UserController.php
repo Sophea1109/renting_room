@@ -17,14 +17,16 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:25',
+            'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|string|min:6',
             'role' => 'required|in:admin,user,owner',
         ]);
 
         $user = User::create([
-            'name' => $request->name,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
@@ -41,14 +43,16 @@ class UserController extends Controller
         $user = User::findOrFail($id);
     
         $request->validate([
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:25',
+            'last_name' => 'required|string|max:25',
             'email' => 'required|email|unique:users,email,' . $id,
             'role' => 'required|in:admin,user,owner',
             'password' => 'nullable|string|min:6',
         ]);
     
         $data = [
-            'name' => $request->name,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
             'email' => $request->email,
             'role' => $request->role,
         ];

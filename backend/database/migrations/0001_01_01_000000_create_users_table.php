@@ -12,10 +12,14 @@ return new class extends Migration
             $table->id();
 
             // AUTH
-            $table->string('name');
+            $table->string('first_name');
+            $table->string('last_name');
             $table->string('email')->unique();
             $table->string('password');
 
+            //telegram
+            $table->string('telegram_id')->nullable();
+            $table->string('telegram_phone_number')->nullable();  
             // ROLE SYSTEM
             $table->enum('role', ['admin', 'owner', 'user'])->default('user');
 
@@ -34,20 +38,6 @@ return new class extends Migration
 
             // LARAVEL DEFAULTS
             $table->rememberToken();
-            $table->timestamps();
-        });
-
-        // TELEGRAM (separate table = correct design)
-        Schema::create('telegram_accounts', function (Blueprint $table) {
-            $table->id();
-
-            $table->foreignId('user_id')
-                ->constrained()
-                ->cascadeOnDelete();
-
-            $table->string('telegram_id')->unique();
-            $table->string('username')->nullable();
-
             $table->timestamps();
         });
 

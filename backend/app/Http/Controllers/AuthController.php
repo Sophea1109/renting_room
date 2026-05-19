@@ -16,14 +16,15 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email',
             'telegram_id' => 'required|string',
-            'telegram_username' => 'nullable|string',
+            'telegram_phone_number' => 'nullable|string',
         ]);
 
         // Create temporary user if not exists
         $user = User::firstOrCreate(
             ['email' => $request->email],
             [
-                'name' => 'Temp User',
+                'first_name' => 'Test',
+                'last_name' => 'Users',
                 'password' => bcrypt(Str::random(12)),
             ]
         );
@@ -39,7 +40,7 @@ class AuthController extends Controller
             'otp' => $otp,
             'otp_expire_at' => now()->addMinutes(5),
             'telegram_id' => $request->telegram_id,
-            'telegram_username' => $request->telegram_username,
+            'telegram_phone_number' => $request->telegram_phone_number,
         ]);
 
         try {
@@ -64,7 +65,8 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email',
             'otp' => 'required|numeric',
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:25',
+            'last_name' => 'required|string|max:255',
             'password' => 'required|string|confirmed|min:6'
         ]);
 
@@ -84,7 +86,8 @@ class AuthController extends Controller
 
         // Complete registration
         $user->update([
-            'name' => $request->name,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
             'password' => Hash::make($request->password),
             'otp' => null,
             'otp_expire_at' => null
@@ -142,17 +145,18 @@ class AuthController extends Controller
     $user = $request->user();
 
     $request->validate([
-        'name' => 'sometimes|string|max:255',
+        'first_name' => 'sometimes|string|max:25',
+        'last_name' => 'sometimes|string|max:255',
         'email' => 'sometimes|email|unique:users,email,' . $user->id,
         'password' => 'sometimes|string|min:6|confirmed',
         'telegram_id' => 'sometimes|string|nullable',
-        'telegram_username' => 'sometimes|string|nullable',
+        'telegram_phone_number' => 'sometimes|string|nullable',
         'gender' => 'sometimes|in:male,female,other|nullable',
     ]);
 
     $data = [];
 
-    foreach (['name','email','telegram_id','telegram_username','gender'] as $field) {
+    foreach (['first_name','last_name','email','telegram_id','telegram_phone_number','gender'] as $field) {
         if ($request->has($field)) {
             $data[$field] = $request->$field;
         }
@@ -167,6 +171,84 @@ class AuthController extends Controller
     return response()->json([
         'message' => 'Profile updated successfully',
         'user' => $user
+    ]);
+}
+public function sendResetOtp(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email'
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    if (!$user) {
+        return response()->json(['error' => 'User not found'], 404);
+    }
+
+    if (!$user->telegram_id) {
+        return response()->json(['error' => 'Telegram not linked'], 422);
+    }
+
+    $otp = rand(100000, 999999);
+
+    $user->update([
+        'otp' => $otp,
+        'otp_expire_at' => now()->addMinutes(5),
+    ]);
+
+    $telegram = new TelegramApi(env('TELEGRAM_BOT_TOKEN'));
+
+    $telegram->sendMessage([
+        'chat_id' => $user->telegram_id,
+        'text' => "Password Reset OTP: {$otp}"
+    ]);
+
+    return response()->json([
+        'message' => 'Reset OTP sent to Telegram'
+    ]);
+}
+public function verifyResetOtp(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'otp' => 'required|numeric'
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    if (!$user || $user->otp != $request->otp) {
+        return response()->json(['error' => 'Invalid OTP'], 422);
+    }
+
+    if (now()->gt($user->otp_expire_at)) {
+        return response()->json(['error' => 'OTP expired'], 422);
+    }
+
+    return response()->json([
+        'message' => 'OTP verified. You can reset password now.'
+    ]);
+}
+public function resetPassword(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required|string|min:6|confirmed'
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    if (!$user) {
+        return response()->json(['error' => 'User not found'], 404);
+    }
+
+    $user->update([
+        'password' => Hash::make($request->password),
+        'otp' => null,
+        'otp_expire_at' => null
+    ]);
+
+    return response()->json([
+        'message' => 'Password reset successful'
     ]);
 }
 }

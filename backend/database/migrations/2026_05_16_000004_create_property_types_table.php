@@ -9,20 +9,20 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
-{
-    Schema::table('units', function (Blueprint $table) {
-        $table->string('image')->nullable();
-    });
-}
+    public function up(): void
+    {
+        Schema::create('property_types', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('units', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('property_types');
     }
 };

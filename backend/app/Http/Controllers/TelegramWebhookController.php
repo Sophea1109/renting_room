@@ -40,7 +40,7 @@ class TelegramWebhookController extends Controller
                 ['user_id' => $user->id],
                 [
                     'telegram_id' => $chatId,
-                    'username' => $username
+                    ' telegram_phone_number' => $username
                 ]
             );
         }

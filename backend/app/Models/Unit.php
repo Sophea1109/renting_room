@@ -3,31 +3,43 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Unit extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'property_id','name','type','capacity',
-        'price_per_night','total_units','available_units','is_active'
+        'tittle',
+        'descrepton',
+        'user_id',
+        'property_id',
+        'image',
+        'floor',
+        'status',
+        'price_type',
+        'residential_water',
+        'electricity_prices',
+        'price',
+        'bed',
+        'max_member',
     ];
 
+    /*
+    |-----------------------------
+    | Relationships
+    |-----------------------------
+    */
+
+    // Unit belongs to User
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    // Unit belongs to Property
     public function property()
     {
         return $this->belongsTo(Property::class);
-    }
-
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class);
-    }
-
-    public function isAvailable($checkIn, $checkOut)
-    {
-        return !$this->bookings()
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($q) use ($checkIn, $checkOut) {
-                $q->whereBetween('check_in', [$checkIn, $checkOut])
-                  ->orWhereBetween('check_out', [$checkIn, $checkOut]);
-            })->exists();
     }
 }
