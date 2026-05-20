@@ -1,15 +1,22 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
 
+use App\Events\BookingStatusUpdate;
+use App\Http\Controllers\Controller;
 use App\Models\Unit;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use App\Services\TelegramService;
 
 class BookingController extends Controller
 {
+    public function __construct(private TelegramService $telegram){
+        
+    }
+
     // check availability of unit for given date range
     // price calculate in store so tenant can see the price calculation before submitting
     // the booking, better user experience
@@ -80,6 +87,9 @@ class BookingController extends Controller
             'contract_paylater' => $contractPaylater,
         ]);
 
+        broadcast(new BookingStatusUpdate($booking))->toOthers();
+        $this->telegram->sendToUser($booking->unit->user_id, "New booking {$booking->booking_ref} for your unit.");
+
         return response()->json([
             'message' => 'Booking submitted successfully!',
             'booking' => $booking
@@ -133,7 +143,7 @@ class BookingController extends Controller
     }
 
     // show single booking details
-    public function show(){
+    public function show(Booking $booking){
         $user = Auth::user();
         $query = Booking::query();
         if ($user->role === 'owner'){
@@ -166,7 +176,9 @@ class BookingController extends Controller
             ]);
             $booking->unit->update([
                 'status' => 'unavailable',
-            ]);   
+            ]);
+            broadcast(new BookingStatusUpdate($booking))->toOthers();   
+            $this->telegram->sendToUser($booking->user_id, "Your booking {$booking->booking_ref} has been approved!");
             return response()->json([
                 'message' => 'Booking has been approved successfully!', 
             ], 200);
@@ -186,6 +198,8 @@ class BookingController extends Controller
                 ], 422);
             }
             $booking->update(['status' => 'rejected']);
+            broadcast(new BookingStatusUpdate($booking))->toOthers();
+            $this->telegram->sendToUser($booking->user_id, "Your booking {$booking->booking_ref} has been rejected!");
             return response()->json([
                 'message' => 'Booking rejected',
                 'booking' => $booking->fresh(),
@@ -203,6 +217,7 @@ class BookingController extends Controller
             if ($booking->status === 'pending' || $booking->status === 'approved'){
                 $booking->unit->update(['status' => 'available']);
                 $booking->update(['status' => 'cancelled']);
+                broadcast(new BookingStatusUpdate($booking))->toOthers();
                 return response()->json([
                     'message' => 'Booking has been cancelled!',
                     'booking' => $booking->fresh(),

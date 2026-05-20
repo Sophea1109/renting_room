@@ -1,14 +1,20 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
+
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Unit;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Services\TelegramService;
 
 class PaymentController extends Controller
 {
+    public function __construct(private TelegramService $telegram){
+        
+    }
     // mark booking as paid, create payment record, trigger receipt
     public function payNow(Request $request, Booking $booking){
         $validated = $request->validate([
@@ -34,6 +40,7 @@ class PaymentController extends Controller
                 'payment_status' => 'pending_verification',
                 'slip_image' => $slipPath
             ]);
+            $this->telegram->sendToUser($booking->unit->user_id, "New payment {$booking->booking_ref}.");
 
             return response()->json([
                 'message' => 'Payment has been created successfully',
@@ -48,12 +55,14 @@ class PaymentController extends Controller
 
     public function verify(Booking $booking, Payment $payment){
         $user = Auth::user();
+        $booking = $payment->booking;
         if ($user->role === 'owner' && $booking->unit->user_id === $user->id){
             if ($payment->payment_status === 'pending_verification'){
                 $payment->update([
                     'payment_status' => 'paid',
                     'paid_at' => now(),
                 ]);
+                $this->telegram->sendToUser($booking->unit->user_id, "New payment slip uploaded for booking {$booking->booking_ref}.");
                 return response()->json([
                     'message' => 'Payment verified successfully!!',
                     'payment' => $payment->fresh(),

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('booking_id')->constrained('bookings')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->decimal('amount', 10, 2);
-            $table->dateTime('paid_at');
+            $table->dateTime('paid_at')->nullable();
             // pending_verification for pay later when tenant upload the slip but owner check later and confirm it
             $table->enum('payment_status', ['unpaid', 'pending_verification', 'paid', 'refunded'])->default('unpaid');
             $table->enum('payment_method', ['credit_card', 'cash'])->default('credit_card');

@@ -7,6 +7,8 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\API\PropertyController;
 use App\Http\Controllers\API\UnitController;
+use App\Http\Controllers\API\BookingController;
+use App\Http\Controllers\API\PaymentController;
 
 
 /*
@@ -52,4 +54,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/properties', [PropertyController::class, 'store']);
     Route::post('/units', [UnitController::class, 'store']);
 
+    //booking management
+    Route::post('/bookings', [BookingController::class, 'store']);
+    Route::get('/bookings', [BookingController::class, 'index']);
+    Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+    Route::put('/bookings/{booking}/approve', [BookingController::class, 'approved']);
+    Route::put('/bookings/{booking}/reject', [BookingController::class, 'reject']);
+    Route::put('/bookings/{booking}/cancel', [BookingController::class, 'cancelled']);
+
+    //payment
+    Route::post('/payments/{booking}/pay', [PaymentController::class, 'payNow']);
+    Route::put('/payments/{payment}/verify', [PaymentController::class, 'verify']);
+    Route::get('/payments/history', [PaymentController::class, 'history']);
+    Route::get('/payments/owner', [PaymentController::class, 'ownerPayment']);
 });
