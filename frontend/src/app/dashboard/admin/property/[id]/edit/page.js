@@ -1,330 +1,106 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { FaBuilding, FaMapMarkerAlt, FaUser, FaPhone, FaEnvelope, FaSave, FaArrowLeft, FaHome, FaInfoCircle, FaCity, FaGlobe } from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 
-export default function EditProperty() {
+export default function EditPropertyPage() {
   const router = useRouter();
-  const { id } = useParams();
-
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    type: "",
-    address: "",
-    city: "",
-    country: "",
-    owner_id: "",
-  });
+  const params = useParams();
+  const id = params?.id;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [formData, setFormData] = useState({
+    name: "", location: "", property_type_id: "", image: "", star_rating: "",
+    floor: "", have_gym: false, have_swing: false, have_park: false,
+    price: "", price_type: "", has_units: false, tittle: "",
+    descrepton: "", bedrooma: "", has_kitchen: false, size_house: "",
+    bathroom: "", payment_policy: "",
+  });
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  // ================= FETCH PROPERTY =================
   useEffect(() => {
-    if (!id || !token) return;
-
+    if (!id) return;
     const fetchProperty = async () => {
       try {
-        setLoading(true);
-
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/properties/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json",
-            },
-          }
-        );
-
-        const data = await res.json();
-
-        const property = data.property;
-
-        if (!property) throw new Error("Property not found");
-
-        setFormData({
-          name: property.name || "",
-          description: property.description || "",
-          type: property.type || "",
-          address: property.address || "",
-          city: property.city || "",
-          country: property.country || "",
-          owner_id: property.owner_id || "",
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties/${id}`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
         });
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+        const data = await res.json();
+        setFormData(data.data);
+      } catch (error) { console.log(error); } finally { setLoading(false); }
     };
-
     fetchProperty();
   }, [id, token]);
 
-  // ================= HANDLE INPUT =================
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
-  // ================= UPDATE PROPERTY =================
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setError("");
-    setSuccess("");
-
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/properties/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            description: formData.description,
-            type: formData.type,
-            address: formData.address,
-            city: formData.city,
-            country: formData.country,
-            owner_id: formData.owner_id,
-          }),
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || "Update failed");
-
-      setSuccess("Property updated successfully!");
-      
-      setTimeout(() => {
-        router.push("/dashboard/admin/property");
-      }, 1500);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties/${id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      alert("Updated successfully");
+      router.push("/dashboard/admin/property");
+    } catch (error) { alert(error.message); } finally { setSaving(false); }
   };
 
-  // ================= LOADING =================
-  if (loading) {
-    return (
-      <div className="bg-[#0a2a2b] rounded-xl border border-[#235347]/30 shadow-lg overflow-hidden">
-        <div className="p-12 text-center">
-          <div className="inline-block w-8 h-8 border-4 border-[#235347] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-400 text-sm mt-3">Loading property...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="flex justify-center items-center h-screen text-emerald-500">Loading...</div>;
 
-  // ================= UI =================
+  // Helper for input styling
+  const inputClass = "w-full p-3.5 bg-[#0a1a1a] border border-white/10 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all";
+  const labelClass = "block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5";
+
   return (
-    <div className="bg-[#0a2a2b] rounded-xl border border-[#235347]/30 shadow-lg overflow-hidden">
+    <div className="max-w-5xl mx-auto p-8 bg-[#051111] min-h-screen text-white">
+      <header className="mb-10 border-b border-white/5 pb-6">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">Edit Property</h1>
+        <p className="text-gray-500 mt-2">Updating information for: <span className="text-emerald-400">{formData.name}</span></p>
+      </header>
 
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 border-b border-[#235347]/30">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-400 hover:text-[#235347] transition-colors"
-          >
-            <FaArrowLeft size={20} />
-          </button>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Section 1: Basic Information */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-[#0a1e1e]/30 rounded-2xl border border-white/5">
+          <h2 className="col-span-2 text-lg font-semibold text-emerald-400">Basic Info</h2>
+          <div><label className={labelClass}>Property Name</label><input name="name" value={formData.name} onChange={handleChange} className={inputClass} /></div>
+          <div><label className={labelClass}>Location</label><input name="location" value={formData.location} onChange={handleChange} className={inputClass} /></div>
+          <div><label className={labelClass}>Type ID</label><input name="property_type_id" value={formData.property_type_id} onChange={handleChange} className={inputClass} /></div>
+        </div>
 
-          <div>
-            <h3 className="text-xl font-bold text-white">
-              Edit Property
-            </h3>
-            <p className="text-gray-400 text-sm mt-1">Update property information</p>
+        {/* Section 2: Details */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-6 bg-[#0a1e1e]/30 rounded-2xl border border-white/5">
+          <h2 className="col-span-2 md:col-span-4 text-lg font-semibold text-emerald-400">Specs & Pricing</h2>
+          <div><label className={labelClass}>Price</label><input name="price" value={formData.price} onChange={handleChange} className={inputClass} /></div>
+          <div><label className={labelClass}>Price Type</label><select name="price_type" value={formData.price_type} onChange={handleChange} className={inputClass}><option value="day">Day</option><option value="month">Month</option><option value="year">Year</option></select></div>
+          <div><label className={labelClass}>Bedrooms</label><input name="bedrooma" value={formData.bedrooma} onChange={handleChange} className={inputClass} /></div>
+          <div><label className={labelClass}>Bathrooms</label><input name="bathroom" value={formData.bathroom} onChange={handleChange} className={inputClass} /></div>
+        </div>
+
+        {/* Section 3: Amenities */}
+        <div className="p-6 bg-[#0a1e1e]/30 rounded-2xl border border-white/5">
+          <h2 className="text-lg font-semibold text-emerald-400 mb-4">Amenities</h2>
+          <div className="flex flex-wrap gap-6">
+            {["have_gym", "have_swing", "have_park", "has_kitchen"].map((amenity) => (
+              <label key={amenity} className="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" name={amenity} checked={formData[amenity]} onChange={handleChange} className="w-5 h-5 accent-emerald-500" />
+                <span className="text-gray-300 group-hover:text-white transition-colors">{amenity.replace("_", " ").toUpperCase()}</span>
+              </label>
+            ))}
           </div>
         </div>
 
-        <button
-          onClick={handleSubmit}
-          disabled={saving}
-          className="px-4 py-2 bg-gradient-to-r from-[#235347] to-[#1a3f35] text-white rounded-lg text-sm hover:from-[#2a7a64] hover:to-[#235347] transition-all duration-300 flex items-center gap-2 shadow-lg disabled:opacity-50"
-        >
-          <FaSave size={14} />
-          {saving ? "Saving..." : "Save Changes"}
+        <button type="submit" disabled={saving} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold shadow-lg shadow-emerald-900/20 transition-all">
+          {saving ? "Saving Changes..." : "Save Property Changes"}
         </button>
-      </div>
-
-      {/* SUCCESS MESSAGE */}
-      {success && (
-        <div className="mx-6 mt-4 p-4 bg-green-500/10 border border-green-500/50 rounded-lg">
-          <p className="text-green-400 text-sm">{success}</p>
-        </div>
-      )}
-
-      {/* ERROR */}
-      {error && (
-        <div className="mx-6 mt-4 p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
-
-      {/* FORM */}
-      <form onSubmit={handleSubmit} className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* LEFT COLUMN */}
-          <div className="space-y-4">
-            <h4 className="text-white font-semibold flex items-center gap-2 border-b border-[#235347]/30 pb-2">
-              <FaBuilding className="text-[#235347]" />
-              Property Details
-            </h4>
-
-            {/* NAME */}
-            <div>
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Property Name *
-              </label>
-              <div className="relative">
-                <FaHome className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm" />
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full pl-10 pr-4 py-2 bg-[#051F20] border border-[#235347]/40 rounded-lg text-white focus:outline-none focus:border-[#235347] focus:ring-1 focus:ring-[#235347]/20 transition-all"
-                  placeholder="Enter property name"
-                />
-              </div>
-            </div>
-
-            {/* TYPE */}
-            <div>
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Property Type
-              </label>
-              <div className="relative">
-                <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm" />
-                <input
-                  type="text"
-                  name="type"
-                  value={formData.type}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 bg-[#051F20] border border-[#235347]/40 rounded-lg text-white focus:outline-none focus:border-[#235347] focus:ring-1 focus:ring-[#235347]/20 transition-all"
-                  placeholder="e.g., Apartment, House, Villa"
-                />
-              </div>
-            </div>
-
-            {/* DESCRIPTION */}
-            <div>
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Description
-              </label>
-              <div className="relative">
-                <FaInfoCircle className="absolute left-3 top-3 text-gray-500 text-sm" />
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows="4"
-                  className="w-full pl-10 pr-4 py-2 bg-[#051F20] border border-[#235347]/40 rounded-lg text-white focus:outline-none focus:border-[#235347] focus:ring-1 focus:ring-[#235347]/20 transition-all"
-                  placeholder="Describe the property..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="space-y-4">
-            <h4 className="text-white font-semibold flex items-center gap-2 border-b border-[#235347]/30 pb-2">
-              <FaMapMarkerAlt className="text-[#235347]" />
-              Location & Owner
-            </h4>
-
-            {/* ADDRESS */}
-            <div>
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Address
-              </label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-[#051F20] border border-[#235347]/40 rounded-lg text-white focus:outline-none focus:border-[#235347] focus:ring-1 focus:ring-[#235347]/20 transition-all"
-                placeholder="Street address"
-              />
-            </div>
-
-            {/* CITY & COUNTRY */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-300 mb-2 text-sm font-medium">
-                  City
-                </label>
-                <div className="relative">
-                  <FaCity className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm" />
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-2 bg-[#051F20] border border-[#235347]/40 rounded-lg text-white focus:outline-none focus:border-[#235347] focus:ring-1 focus:ring-[#235347]/20 transition-all"
-                    placeholder="City"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-300 mb-2 text-sm font-medium">
-                  Country
-                </label>
-                <div className="relative">
-                  <FaGlobe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm" />
-                  <input
-                    type="text"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-2 bg-[#051F20] border border-[#235347]/40 rounded-lg text-white focus:outline-none focus:border-[#235347] focus:ring-1 focus:ring-[#235347]/20 transition-all"
-                    placeholder="Country"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* OWNER ID */}
-            <div>
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Owner ID
-              </label>
-              <div className="relative">
-                <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm" />
-                <input
-                  type="text"
-                  name="owner_id"
-                  value={formData.owner_id}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 bg-[#051F20] border border-[#235347]/40 rounded-lg text-white focus:outline-none focus:border-[#235347] focus:ring-1 focus:ring-[#235347]/20 transition-all"
-                  placeholder="Owner ID"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
       </form>
     </div>
   );

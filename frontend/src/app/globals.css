@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -15,6 +16,58 @@
   animation: slide-up 0.3s ease-out;
 }
 
+/* ==========================================
+   LIGHT MODE DEFINITIONS (DEFAULT)
+   ========================================== */
+   :root {
+    --bg-main: #DAF1DE;        /* Soft Off-White */
+    --bg-card: #FFFFFF;        /* Crisp White for containers */
+    --text-primary: #051F20;   /* Deepest Emerald */
+    --text-secondary: #163832; /* Classic Forest */
+    --brand-primary: #235347;  /* Medium Mint-Sage Button Fill */
+    --brand-accent: #8EB69B;   /* Light Sage Tint */
+    --border-color: #8EB69B;   /* Clean accents */
+}
+
+/* ==========================================
+   DARK MODE INVERSION (WHEN ALIGNED WITH .dark)
+   ========================================== */
+[data-theme="dark"], .dark {
+    --bg-main: #051F20;        /* Deepest Emerald Surface */
+    --bg-card: #0B2B26;        /* Dark Forest for Containers */
+    --text-primary: #DAF1DE;   /* Crisp Soft White text */
+    --text-secondary: #8EB69B; /* Clear Light Sage descriptors */
+    --brand-primary: #235347;  /* Kept stable or matched to accents */
+    --brand-accent: #163832;   /* Inverted Depth space */
+    --border-color: #163832;   /* Subtle structural breaks */
+}
+
+/* ==========================================
+   GLOBAL BODY SETUP TESTING THE VARIABLES
+   ========================================== */
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-family: sans-serif;
+}
+
+/* Example UI classes utilizing our variables */
+.card-component {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.btn-primary {
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+}
 /* ---------------- CSS Variables ---------------- */
 :root {
   --primary-color: #4361ee;

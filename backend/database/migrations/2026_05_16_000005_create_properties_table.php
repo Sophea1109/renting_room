@@ -23,16 +23,7 @@ return new class extends Migration
             $table->boolean('have_gym')->default(false);
             $table->boolean('have_swing')->default(false);
             $table->boolean('have_park')->default(false);
-            $table->decimal('price', 10,2);
-            $table->enum('price_type', ['month','year','day']);
-            $table->boolean('has_units')->default(true);
-            $table->string('tittle');
-            $table->string('descrepton')->nullable();
-            $table->string('bedrooma');
-            $table->boolean('has_kitchen');
-            $table->decimal('size_house', 10,2);
-            $table->string('bathroom');
-            $table->unsignedBigInteger('boking')->nullable();
+            $table->enum('payment_policy', ['pay_first', 'pay_later', 'all']);
             $table->timestamps();
         });
     }

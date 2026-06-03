@@ -1,4 +1,3 @@
-// src/utils/echo.js
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
@@ -6,8 +5,8 @@ window.Pusher = Pusher;
 
 let echoInstance = null;
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+// Change to your Laravel base URL without /api, as broadcasting is a root route
+const LARAVEL_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || "http://localhost:8000";
 
 const getToken = () => {
   if (typeof window === "undefined") return null;
@@ -20,12 +19,13 @@ export const getEcho = () => {
   echoInstance = new Echo({
     broadcaster: 'pusher',
     key: process.env.NEXT_PUBLIC_PUSHER_KEY || 'local',
-    wsHost: process.env.NEXT_PUBLIC_WS_HOST || 'localhost',
+    wsHost: process.env.NEXT_PUBLIC_WS_HOST || '127.0.0.1',
     wsPort: process.env.NEXT_PUBLIC_WS_PORT || 6001,
     forceTLS: false,
     disableStats: true,
-
-    authEndpoint: `${API_BASE}/broadcasting/auth`,
+    
+    // Broadcast auth usually lives at /broadcasting/auth
+    authEndpoint: `${LARAVEL_URL}/broadcasting/auth`,
 
     auth: {
       headers: {

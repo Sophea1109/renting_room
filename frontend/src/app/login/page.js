@@ -1,4 +1,3 @@
-// src/app/login/page.js
 "use client";
 
 import { useState } from "react";
@@ -6,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { loginApi } from "@/utils/api";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -23,71 +23,79 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Hits your backend: Route::post('/login', [AuthController::class, 'login']);
       const response = await loginApi(email, password);
 
       if (response.access_token && response.user) {
-        // ✅ SAVE TO LOCALSTORAGE (auth store)
+        // Cache credentials securely for subsequent Sanctum header authorization
         localStorage.setItem("token", response.access_token);
         localStorage.setItem("user", JSON.stringify(response.user));
 
-        // save user in context
+        // Synchronize Global React Context
         setUser(response.user);
 
-        // ROLE-BASED REDIRECT
-        if (response.user.role === "admin") {
+        // SCHEMA ROLE-BASED REDIRECTION ENGINE
+        const userRole = response.user.role; // 'admin' | 'owner' | 'user'
+
+        if (userRole === "admin") {
           router.push("/dashboard/admin");
+        } else if (userRole === "owner") {
+          router.push("/dashboard/owner");
         } else {
           router.push("/dashboard/user/homepage");
         }
       } else {
-        setError(response.message || "Login failed");
+        setError(response.error || response.message || "Authentication credentials rejected.");
       }
     } catch (err) {
-      setError(err.message || "An error occurred during login");
+      setError(err.message || "A network exception occurred during login.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#051F20] to-[#0a3d3f]">
-      <div className="bg-[#0a2a2b] p-8 rounded-2xl shadow-2xl w-96 border border-[#235347]/30">
-        {/* Logo Section */}
+    <div className="min-h-screen flex items-center justify-center bg-[#DAF1DE] px-4 py-12">
+      <div className="bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl w-full max-w-md border border-[#8EB69B]/30 transition-all duration-300">
+        
+        {/* Logo Headings Section */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-50 flex items-center justify-center mb-3">
+          <div className="flex items-center justify-center mb-3">
             <img
               src="/images/logo.png"
               alt="FindRoommate Logo"
-              className="h-10 md:h-9 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
           </div>
-          <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
-          <p className="text-gray-400 text-sm mt-1">Sign in to your account</p>
+          <h1 className="text-3xl font-extrabold text-[#051F20] tracking-tight">Welcome Back</h1>
+          <p className="text-[#235347] text-sm font-medium mt-1">Sign in to manage your spaces</p>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-2 rounded-lg mb-4 text-sm">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-5 text-xs font-semibold shadow-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-300 mb-2 text-sm font-medium">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Email Block */}
+          <div>
+            <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider">
               Email Address
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-[#051F20] text-white border border-[#235347]/40 focus:outline-none focus:border-[#235347] focus:ring-2 focus:ring-[#235347]/20 transition-all"
+              className="w-full px-4 py-3 bg-white border border-[#8EB69B] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#163832] text-[#051F20] placeholder-[#8EB69B]/60 transition"
               placeholder="you@example.com"
               required
             />
           </div>
 
-          <div className="mb-6">
-            <label className="block text-gray-300 mb-2 text-sm font-medium">
+          {/* Password Block */}
+          <div>
+            <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider">
               Password
             </label>
             <div className="relative">
@@ -95,50 +103,53 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg bg-[#051F20] text-white border border-[#235347]/40 focus:outline-none focus:border-[#235347] focus:ring-2 focus:ring-[#235347]/20 transition-all pr-10"
+                className="w-full px-4 py-3 bg-white border border-[#8EB69B] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#163832] text-[#051F20] transition pr-11"
                 placeholder="••••••••"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-300 transition"
+                className="absolute right-3.5 top-3.5 text-[#235347] hover:text-[#051F20] transition text-lg"
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
             </div>
           </div>
 
-          <div className="mb-6 flex items-center justify-between">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="rounded bg-[#051F20] border-[#235347]/40 text-[#235347] focus:ring-[#235347]/20"
-              />
-              <span className="ml-2 text-sm text-gray-400">Remember me</span>
-            </label>
-            <a
-              href="#"
-              className="text-sm text-[#235347] hover:text-[#2a7a64] transition"
-            >
-              Forgot password?
-            </a>
-          </div>
-
+          {/* Remember State & Recover Elements */}
+          <div className="mb-6 flex items-center justify-between text-sm pt-1">
+  <label className="flex items-center cursor-pointer select-none">
+    <input
+      type="checkbox"
+      className="rounded border-[#8EB69B] text-[#0B2B26] focus:ring-[#163832]/30 w-4 h-4"
+    />
+    <span className="ml-2 text-xs font-semibold text-[#235347]">Remember me</span>
+  </label>
+  
+  {/* Connected cleanly to your new directory layout */}
+  <Link
+    href="/forgot-password"
+    className="text-xs font-bold text-[#0B2B26] hover:text-[#051F20] hover:underline transition"
+  >
+    Forgot password?
+  </Link>
+</div>
+          {/* Form Action Dispatcher */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-[#235347] to-[#1a3f35] text-white py-2.5 rounded-lg hover:from-[#2a7a64] hover:to-[#235347] transition-all duration-300 disabled:opacity-50 font-medium shadow-lg"
+            className="w-full bg-[#0B2B26] hover:bg-[#051F20] text-[#DAF1DE] font-semibold py-3.5 rounded-xl transition shadow-lg shadow-[#0B2B26]/20 disabled:opacity-50 mt-2"
           >
-            {loading ? "Logging in..." : "Sign In"}
+            {loading ? "Authenticating Session..." : "Sign In"}
           </button>
         </form>
 
-        <p className="text-center text-gray-400 text-sm mt-6">
+        <p className="text-center text-[#235347] text-sm font-medium mt-6">
           Don't have an account?{" "}
           <a
             href="/register"
-            className="text-[#235347] hover:text-[#2a7a64] font-medium transition"
+            className="text-[#0B2B26] hover:text-[#051F20] font-bold hover:underline transition"
           >
             Sign up
           </a>

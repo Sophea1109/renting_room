@@ -11,7 +11,7 @@ export const getAuthToken = () => {
 /* =========================================================
    CORE REQUEST
 ========================================================= */
-async function request(url, options = {}) {
+export async function request(url, options = {}) {
   const token = getAuthToken();
   const isFormData = options.body instanceof FormData;
 
@@ -38,21 +38,15 @@ async function request(url, options = {}) {
     // Handle 401 Unauthorized - Token expired
     if (res.status === 401) {
       console.error("❌ Authentication failed - token may be expired");
-      
-      // Clear invalid token
-      clearAuth();
-      
-      // Redirect to login page if in browser and not already on auth pages
-      if (typeof window !== "undefined") {
-        const isAuthPage = window.location.pathname === "/login" || 
-                          window.location.pathname === "/register";
-        
-        if (!isAuthPage) {
-          alert("Your session has expired. Please login again.");
-          window.location.href = "/login";
-        }
-      }
-      
+      //clearAuth();
+      //if (typeof window !== "undefined") {
+       // const isAuthPage = window.location.pathname === "/login" || 
+         //                  window.location.pathname === "/register";
+        //if (!isAuthPage) {
+         // alert("Your session has expired. Please login again.");
+          //window.location.href = "/login";
+       /// }
+      //}
       throw new Error(data?.message || "Session expired. Please login again.");
     }
 
@@ -198,125 +192,34 @@ export const verifyOtpApi = (
   });
 
 /* =========================================================
-   CHAT
+   CHAT & NOTIFICATIONS (Aligned with Laravel Routes)
 ========================================================= */
 
-const safeJson = async (res) => {
-  const text = await res.text();
-  try {
-    return text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error("Invalid JSON response");
-  }
-};
+// 1. Aligned with: api/chat/users
+export const fetchChatUsers = () => 
+  request(`${API_URL}/chat/users`, { method: "GET" });
 
-export const fetchChatUsers = async (search = "") => {
-  const res = await fetch(
-    `${API_URL}/chat/users?search=${encodeURIComponent(search)}`,
-    {
-      headers: {
-        Accept: "application/json",
-        ...(getAuthToken()
-          ? { Authorization: `Bearer ${getAuthToken()}` }
-          : {}),
-      },
-    }
-  );
+// 2. Aligned with: api/chat/messages/{id}
+export const fetchMessages = (userId) => 
+  request(`${API_URL}/chat/messages/${userId}`, { method: "GET" });
 
-  const data = await safeJson(res);
-  return { users: data?.users || [] };
-};
-
-export const fetchMessages = async (userId) => {
-  const res = await fetch(`${API_URL}/chat/messages/${userId}`, {
-    headers: {
-      Accept: "application/json",
-      ...(getAuthToken()
-        ? { Authorization: `Bearer ${getAuthToken()}` }
-        : {}),
-    },
-  });
-
-  return safeJson(res);
-};
-
-export const sendMessageApi = async (receiver_id, message) => {
-  const res = await fetch(`${API_URL}/chat/send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(getAuthToken()
-        ? { Authorization: `Bearer ${getAuthToken()}` }
-        : {}),
-    },
+// 3. Aligned with: api/chat/send
+export const sendMessage = (receiverId, messageText) => 
+  request(`${API_URL}/chat/send`, { 
+    method: "POST", 
     body: JSON.stringify({
-      receiver_id,
-      message: message?.trim(),
-    }),
+      receiver_id: receiverId,
+      message: messageText,
+    })
   });
 
-  return safeJson(res);
-};
+// 4. Aligned with: api/messages/read/{id}
+export const markMessagesAsRead = (senderId) => 
+  request(`${API_URL}/messages/read/${senderId}`, { method: "PUT" });
 
-export const markMessagesAsRead = async (senderId) => {
-  const res = await fetch(`${API_URL}/messages/read/${senderId}`, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json",
-      ...(getAuthToken()
-        ? { Authorization: `Bearer ${getAuthToken()}` }
-        : {}),
-    },
-  });
-
-  return safeJson(res);
-};
-
-/* =========================================================
-   NOTIFICATIONS (FIXED - USES SAFE REQUEST)
-========================================================= */
-
-export const fetchUnreadMessagesApi = async () => {
-  const data = await safeRequest(`${API_URL}/messages/unread`, {
-    method: "GET",
-  });
-  
-  // Return consistent format even if data is null
-  if (!data) {
-    return { count: 0, messages: [] };
-  }
-  
-  // Handle various response formats
-  if (Array.isArray(data)) {
-    return { count: data.length, messages: data };
-  }
-  
-  if (data.messages) {
-    return { count: data.messages.length, messages: data.messages };
-  }
-  
-  if (data.unread_messages) {
-    return { count: data.unread_messages.length, messages: data.unread_messages };
-  }
-  
-  if (data.data) {
-    return { count: data.data.length, messages: data.data };
-  }
-  
-  if (data.count !== undefined) {
-    return { count: data.count, messages: [] };
-  }
-  
-  // Default return
-  return { count: 0, messages: [] };
-};
-
-export const markMessagesAsReadApi = (senderId) =>
-  request(`${API_URL}/messages/read/${senderId}`, {
-    method: "PUT",
-  });
-
+// 5. Aligned with: api/unread-messages
+export const fetchUnreadMessagesApi = () => 
+  request(`${API_URL}/unread-messages`, { method: "GET" });
 /* =========================================================
    AUTH HELPERS
 ========================================================= */
@@ -375,6 +278,34 @@ export const uploadAvatar = (file) => {
 export const getAvatar = (userId) =>
   request(`${API_URL}/user/avatar/${userId}`, { method: "GET" });
 
+
+/* =========================================================
+   PROPERTY TYPES (ADMIN CRUD)
+========================================================= */
+
+// Fetch all property types
+export const fetchPropertyTypes = () =>
+  request(`${API_URL}/property-types`, { method: "GET" });
+
+// Create a new property type
+export const createPropertyType = (name) =>
+  request(`${API_URL}/property-types`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+
+// Update an existing property type name by ID
+export const updatePropertyType = (id, name) =>
+  request(`${API_URL}/property-types/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ name }),
+  });
+
+// Delete a property type by ID
+export const deletePropertyType = (id) =>
+  request(`${API_URL}/property-types/${id}`, {
+    method: "DELETE",
+  });
 /* =========================================================
    USERS (ADMIN) - FIXED
 ========================================================= */
@@ -428,58 +359,62 @@ export const deleteUser = (id) =>
   });
 
 /* =========================================================
-   property (CORRECT SYSTEM)
+   BOOKINGS & PAYMENTS (UPDATED AND ALIGNED)
 ========================================================= */
 
-export const fetchProperties = () =>
-  request(`${API_URL}/properties`, { method: "GET" });
-
-export const createProperty = (data) =>
-  request(`${API_URL}/properties`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-
-export const updateProperty = (id, data) =>
-  request(`${API_URL}/properties/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-
-export const deleteProperty = (id) =>
-  request(`${API_URL}/properties/${id}`, {
-    method: "DELETE",
-  });
-
-
-/* =========================================================
-   Booking (CORRECT SYSTEM)
-========================================================= */
-export const createBooking = (data) =>
-  request(`${API_URL}/bookings`, {
+export const createBookingApi = async (payload) => {
+  return request(`${API_URL}/bookings`, {
     method: "POST",
     body: JSON.stringify({
-      unit_id: data.unit_id,
-      check_in: data.check_in,
-      check_out: data.check_out,
-      guests: data.guests,
+      unit_id: payload.unit_id,
+      check_in: payload.check_in || payload.check_in_date, 
+      check_out: payload.check_out || payload.check_out_date, 
+      payment_method: payload.payment_method, 
+      transaction_ref: payload.transaction_ref || null,
     }),
   });
+};
 
-export const checkAvailability = (data) =>
-  request(`${API_URL}/bookings/check-availability`, {
-    method: "POST",
-    body: JSON.stringify({
-      unit_id: data.unit_id,
-      check_in: data.check_in,
-      check_out: data.check_out,
-    }),
-  });
-
-export const fetchMyBookings = () =>
-  request(`${API_URL}/bookings/my`, {
+export const fetchPaymentGatewayDetails = async (bookingId) => {
+  return request(`${API_URL}/payment/gateway/${bookingId}`, { 
     method: "GET",
   });
+};
+
+export const captureVisaPaymentApi = async (bookingId, cardName) => {
+  return request(`${API_URL}/payment/visa-checkout`, { 
+    method: "POST",
+    body: JSON.stringify({
+      booking_id: bookingId,
+      card_name: cardName,
+    }),
+  });
+};
+
+export const fetchBookingsApi = () => 
+  request(`${API_URL}/bookings`, { method: "GET" });
+/* =========================================================
+   UNITS (CORRECT SYSTEM)
+========================================================= */
+// REPLACE your current fetchPropertiesApi with this:
+export const fetchPropertiesApi = () => 
+  request(`${API_URL}/properties`, { method: "GET" });
+
+/* =========================================================
+   PROPERTIES (UPDATED)
+========================================================= */
+
+// This uses your existing 'request' helper to include the Auth token
+export const fetchProperties = () => 
+  request(`${API_URL}/properties`, { method: "GET" });
+
+export const deletePropertyApi = (id) => 
+  request(`${API_URL}/properties/${id}`, { method: "DELETE" });
+
+export const deleteUnitApi = (unitId) => 
+  request(`${API_URL}/units/${unitId}`, { method: "DELETE" });
+
+  
 
 /* =========================================================
    UNITS (CORRECT SYSTEM)
@@ -506,3 +441,20 @@ export const deleteUnit = (id) =>
   request(`${API_URL}/units/${id}`, {
     method: "DELETE",
   });
+
+  export const submitReview = async (data) => {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(data),
+    });
+  
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || "Failed to post review");
+    return result;
+  };

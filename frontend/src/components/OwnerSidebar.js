@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { 
-  Home, 
   MessageSquare, 
   Settings, 
   LogOut, 
@@ -14,10 +13,7 @@ import {
   FileText,
   Calendar,
   LayoutDashboard,
-  Bell,
-  Shield,
   Menu,
-  TrendingUp,
   ChevronDown
 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
@@ -54,6 +50,7 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
     }));
   };
 
+  // Restructured menu item data mapping
   const menuItems = [
     { 
       id: 'dashboard', 
@@ -114,11 +111,12 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
   const isActive = (item) => {
     if (activeTab === item.id) return true;
     if (pathname === item.path) return true;
-    if (item.path !== '/' && pathname?.startsWith(item.path)) return true;
+    // Enhanced active layout parsing (prevents matching root route accidentally)
+    if (item.path && item.path !== '/dashboard/owner' && pathname?.startsWith(item.path)) return true;
     return false;
   };
 
-  const renderMenuItem = (item, isSettings = false) => {
+  const renderMenuItem = (item) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
     const isExpanded = expandedMenus[item.id];
     const active = isActive(item);
@@ -151,7 +149,7 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></div>
           )}
 
-          {/* Icon with hover effect */}
+          {/* Icon */}
           <div className={`
             relative transition-transform duration-200
             ${hoveredItem === item.id ? 'scale-110' : ''}
@@ -163,7 +161,7 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
             )}
           </div>
 
-          {/* Label */}
+          {/* Label & Badges */}
           {!collapsed && (
             <>
               <span className="ml-3 flex-1 text-left text-sm font-medium">{item.label}</span>
@@ -189,7 +187,7 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
             </>
           )}
 
-          {/* Tooltip for collapsed mode */}
+          {/* Collapsed Tooltip */}
           {collapsed && (
             <div className="absolute left-full ml-2 px-2 py-1 bg-[#0a2a2b] text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 border border-[#235347]/30">
               {item.label}
@@ -207,21 +205,17 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
           )}
         </button>
 
-        {/* Submenu */}
+        {/* Nested Submenu Layout Rendering */}
         {hasSubItems && isExpanded && !collapsed && (
           <div className="ml-9 mt-1 space-y-0.5">
             {item.subItems.map((subItem) => (
               <button
                 key={subItem.path}
                 onClick={() => router.push(subItem.path)}
-                className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-[#0a2a2b] rounded-lg transition-colors flex items-center justify-between group"
+                className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex items-center justify-between group
+                  ${pathname === subItem.path ? 'text-white bg-[#0a2a2b]' : 'text-gray-400 hover:text-white hover:bg-[#0a2a2b]/50'}`}
               >
                 <span>{subItem.label}</span>
-                {subItem.badge && (
-                  <span className="bg-[#235347] text-white text-xs px-1.5 py-0.5 rounded-full">
-                    {subItem.badge}
-                  </span>
-                )}
               </button>
             ))}
           </div>
@@ -249,7 +243,7 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
       `}>
         {/* Header */}
         <div className={`
-          p-5 border-b border-[#235347]/30 bg-gradient-to-r from-[#051F20] to-[#0a2a2b]
+          p-5 border-b border-[#235347]/30 bg-gradient-to-r from-[#051F20] to-[#0a2a2b] relative
           ${collapsed ? 'text-center' : ''}
         `}>
           <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'}`}>
@@ -276,12 +270,7 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
           {/* Collapse toggle button */}
           <button
             onClick={onToggleCollapse}
-            className={`
-              absolute top-5 right-0 transform translate-x-1/2
-              bg-[#0a2a2b] border border-[#235347]/30 rounded-full p-1.5
-              hover:bg-[#235347] transition-colors shadow-lg
-              ${collapsed ? 'hidden lg:block' : 'hidden lg:block'}
-            `}
+            className="absolute top-5 right-0 transform translate-x-1/2 bg-[#0a2a2b] border border-[#235347]/30 rounded-full p-1.5 hover:bg-[#235347] transition-colors shadow-lg hidden lg:block"
           >
             {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
@@ -303,14 +292,11 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
           </div>
         )}
 
-        {/* Main Menu */}
+        {/* Main Menu Wrapper */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 scrollbar-thin scrollbar-thumb-[#235347] scrollbar-track-[#051F20]">
           <div className="space-y-6">
             <div>
-              <h3 className={`
-                text-[#235347] text-xs font-semibold uppercase tracking-wider mb-3
-                ${collapsed ? 'text-center' : 'px-2'}
-              `}>
+              <h3 className={`text-[#235347] text-xs font-semibold uppercase tracking-wider mb-3 ${collapsed ? 'text-center' : 'px-2'}`}>
                 {collapsed ? '•••' : 'Main Menu'}
               </h3>
               <div className="space-y-0.5">
@@ -319,20 +305,17 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
             </div>
 
             <div>
-              <h3 className={`
-                text-[#235347] text-xs font-semibold uppercase tracking-wider mb-3
-                ${collapsed ? 'text-center' : 'px-2'}
-              `}>
+              <h3 className={`text-[#235347] text-xs font-semibold uppercase tracking-wider mb-3 ${collapsed ? 'text-center' : 'px-2'}`}>
                 {collapsed ? '•••' : 'Settings'}
               </h3>
               <div className="space-y-0.5">
-                {settingsItems.map(item => renderMenuItem(item, true))}
+                {settingsItems.map(item => renderMenuItem(item))}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer with user profile */}
+        {/* Footer profile container */}
         <div className="p-4 border-t border-[#235347]/30 bg-gradient-to-t from-[#051F20] to-transparent">
           {!collapsed ? (
             <>
@@ -358,7 +341,7 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
 
               <div className="mt-3 text-center">
                 <p className="text-gray-500 text-xs">Version 2.1.0</p>
-                <p className="text-gray-600 text-[10px] mt-0.5">© 2024 Owner Panel</p>
+                <p className="text-gray-600 text-[10px] mt-0.5">© 2026 Owner Panel</p>
               </div>
             </>
           ) : (

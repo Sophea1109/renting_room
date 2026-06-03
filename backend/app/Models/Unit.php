@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Unit extends Model
 {
@@ -37,9 +38,21 @@ class Unit extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Unit belongs to Property
-    public function property()
+    public function property(): BelongsTo
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'property_id');
     }
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'unit_id');
+    }
+    public function reviews()
+{
+    return $this->hasMany(Review::class);
+}
+
+public function averageRating()
+{
+    return round($this->reviews()->avg('rating'), 1) ?? 0;
+}
 }

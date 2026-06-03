@@ -27,7 +27,6 @@ return new class extends Migration
             $table->decimal('price', 10, 2);
             $table->string('bed')->nullable();
             $table->string('max_member')->nullable();
-            $table->unsignedBigInteger('booking')->nullable();
             $table->timestamps();
         });
     }

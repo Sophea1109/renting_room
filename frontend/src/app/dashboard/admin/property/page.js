@@ -2,200 +2,93 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
+import { fetchPropertiesApi, deleteProperty, deleteUnit } from "@/utils/api";
 import {
-  FaPlus,
-  FaEdit,
-  FaTrash,
-  FaBuilding,
-  FaMapMarkerAlt,
-  FaUser,
-  FaDoorOpen,
-  FaDollarSign,
-  FaUsers,
-  FaSearch,
-  FaChevronDown,
-  FaChevronUp,
-  FaBed,
-  FaHome,
-  FaEye,
-  FaEyeSlash,
-  FaChartLine,
-  FaStar,
-  FaCheckCircle,
-  FaClock,
+  FaPlus, FaEdit, FaTrash, FaBuilding, FaMapMarkerAlt, 
+  FaUser, FaDoorOpen, FaUsers, FaSearch, FaChevronDown, 
+  FaChevronUp, FaBed, FaHome, FaEye, FaEyeSlash, 
+  FaChartLine, FaStar, FaCheckCircle, FaClock,
 } from "react-icons/fa";
 
 export default function PropertiesAdminTable() {
   const router = useRouter();
-
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
-  const [viewMode, setViewMode] = useState("table"); // table or grid
+  const [viewMode, setViewMode] = useState("table");
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  // ================= FETCH PROPERTIES =================
+  // --- HELPER FUNCTIONS ---
+  const getTypeIcon = (type) => {
+    switch (type) {
+      case 'apartment': return <FaBuilding className="text-emerald-400" />;
+      case 'house': return <FaHome className="text-emerald-400" />;
+      default: return <FaBed className="text-emerald-400" />;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    return status === 'available' 
+      ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/10" 
+      : "border-amber-500/50 text-amber-400 bg-amber-500/10";
+  };
+
+
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      setError("");
-
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-
-      const data = await res.json();
-
-      const list = Array.isArray(data)
-        ? data
-        : data.properties || data.data || [];
-
-      // fetch units for each property
-      const fullData = await Promise.all(
-        list.map(async (property) => {
-          try {
-            const res = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/units/property/${property.id}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  Accept: "application/json",
-                },
-              }
-            );
-
-            const unitData = await res.json();
-
-            return {
-              ...property,
-              units: Array.isArray(unitData) ? unitData : unitData.units || [],
-            };
-          } catch (err) {
-            return { ...property, units: [] };
-          }
-        })
-      );
-
-      setProperties(fullData);
+      // Use the variable name you imported above
+      const response = await fetchPropertiesApi(); 
+      setProperties(response.data || []);
     } catch (err) {
-      console.error("Fetch error:", err);
-      setError(err.message || "Failed to load properties");
-      setProperties([]);
+      console.error(err);
+      setError("Failed to load properties.");
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (token) fetchProperties();
-  }, [token]);
-
-  // ================= DELETE PROPERTY =================
   const deleteProperty = async (id) => {
-    if (!confirm("⚠️ Delete this property? This action cannot be undone.")) return;
-
+    if (!confirm("Are you sure you want to delete this property?")) return;
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setProperties((prev) => prev.filter((p) => p.id !== id));
-    } catch (err) {
-      setError(err.message);
-    }
+      await deletePropertyApi(id);
+      fetchProperties(); // Refresh the list after deletion
+    } catch (err) { alert("Failed to delete property."); }
   };
 
-  // ================= DELETE UNIT =================
-  const deleteUnit = async (unitId, propertyId) => {
-    if (!confirm("⚠️ Delete this unit?")) return;
-
+  const deleteUnit = async (unitId) => {
+    if (!confirm("Are you sure you want to delete this unit?")) return;
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/units/${unitId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      await fetchProperties();
-    } catch (err) {
-      console.error("Delete unit error:", err);
-      setError(err.message);
-    }
+      await deleteUnitApi(unitId);
+      fetchProperties(); // Refresh the list
+    } catch (err) { alert("Failed to delete unit."); }
   };
 
-  // ================= FILTER =================
+
+  useEffect(() => { if (token) fetchProperties(); }, [token]);
+
+  // --- COMPUTED DATA ---
   const filteredProperties = useMemo(() => {
-    return properties.filter((p) => {
-      return (
-        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.owner_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    });
+    return properties.filter((p) => 
+      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      p.city?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   }, [properties, searchTerm]);
 
-  // ================= STATS =================
   const stats = useMemo(() => {
-    const totalUnits = filteredProperties.reduce(
-      (sum, p) => sum + (p.units?.length || 0),
-      0
-    );
-    const occupiedUnits = filteredProperties.reduce(
-      (sum, p) => sum + (p.units?.filter(u => u.status === 'booked').length || 0),
-      0
-    );
-
+    const totalProperties = filteredProperties.length;
+    const totalUnits = filteredProperties.reduce((sum, p) => sum + (p.units?.length || 0), 0);
+    const occupiedUnits = filteredProperties.reduce((sum, p) => sum + (p.units?.filter(u => u.status === 'booked').length || 0), 0);
     return {
-      totalProperties: filteredProperties.length,
+      totalProperties,
       totalUnits,
-      avgUnits: filteredProperties.length > 0
-        ? (totalUnits / filteredProperties.length).toFixed(1)
-        : 0,
-      occupancyRate: totalUnits > 0 
-        ? ((occupiedUnits / totalUnits) * 100).toFixed(0)
-        : 0,
+      avgUnits: totalProperties > 0 ? (totalUnits / totalProperties).toFixed(1) : 0,
+      occupancyRate: totalUnits > 0 ? ((occupiedUnits / totalUnits) * 100).toFixed(0) : 0,
     };
   }, [filteredProperties]);
-
-  // ================= GET TYPE ICON =================
-  const getTypeIcon = (type) => {
-    switch (type?.toLowerCase()) {
-      case "private_room":
-        return <FaBed className="text-emerald-400 text-xs" />;
-      case "shared_room":
-        return <FaUsers className="text-emerald-400 text-xs" />;
-      case "entire_home":
-        return <FaHome className="text-emerald-400 text-xs" />;
-      default:
-        return <FaDoorOpen className="text-emerald-400 text-xs" />;
-    }
-  };
-
-  // ================= GET STATUS COLOR =================
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case "available":
-        return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-      case "booked":
-        return "bg-amber-500/20 text-amber-400 border-amber-500/30";
-      case "maintenance":
-        return "bg-rose-500/20 text-rose-400 border-rose-500/30";
-      default:
-        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-    }
-  };
-
   return (
     <div className="bg-gradient-to-br from-[#0a2a2b] to-[#0d3537] rounded-2xl shadow-2xl overflow-hidden">
       {/* HEADER with Gradient */}
@@ -350,20 +243,27 @@ export default function PropertiesAdminTable() {
                             </span>
                           </div>
                          </td>
+                         <td className="px-6 py-4">
+  <div className="flex items-center gap-2">
+    <FaMapMarkerAlt className="text-emerald-400 text-xs" />
+    {/* Combining city and location if needed */}
+    <span className="text-gray-300 text-sm">
+      {property.location ? `${property.location}, ${property.city || ''}` : "N/A"}
+    </span>
+  </div>
+</td>
 
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <FaMapMarkerAlt className="text-emerald-400 text-xs" />
-                            <span className="text-gray-300 text-sm">{property.city || "N/A"}</span>
-                          </div>
-                         </td>
-
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <FaUser className="text-emerald-400 text-xs" />
-                            <span className="text-gray-300 text-sm">{property.owner_name || property.owner_id || "Unknown"}</span>
-                          </div>
-                         </td>
+<td className="px-6 py-4">
+  <div className="flex items-center gap-2">
+    <FaUser className="text-emerald-400 text-xs" />
+    <span className="text-gray-300 text-sm">
+      {/* Accessing the nested 'user' relationship */}
+      {property.user 
+        ? `${property.user.first_name} ${property.user.last_name}` 
+        : "Unknown Owner"}
+    </span>
+  </div>
+</td>
 
                         <td className="px-6 py-4">
                           <span className="text-sm px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-medium">
@@ -516,7 +416,7 @@ export default function PropertiesAdminTable() {
                       </div>
                     </div>
 
-                    <div className="p-4 space-y-3">
+                   <div className="p-4 space-y-3">
                       <div className="flex items-center gap-2 text-sm">
                         <FaMapMarkerAlt className="text-emerald-400" />
                         <span className="text-gray-300">{property.city || "N/A"}</span>
@@ -541,7 +441,7 @@ export default function PropertiesAdminTable() {
                         </button>
                         <button
                           onClick={() => deleteProperty(property.id)}
-                          className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded-lg text-sm transition-all"
+                          cl assName="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded-lg text-sm transition-all"
                         >
                           <FaTrash size={14} />
                         </button>

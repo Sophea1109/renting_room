@@ -14,7 +14,8 @@ class Message extends Model
         'sender_id',
         'receiver_id',
         'message',
-        'read_at'
+        'read_at',
+        'is_read'
     ];
 
     protected $casts = [

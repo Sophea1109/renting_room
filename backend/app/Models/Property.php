@@ -20,27 +20,13 @@ class Property extends Model
         'have_gym',
         'have_swing',
         'have_park',
-        'price',
-        'price_type',
-        'has_units',
-        'tittle',
-        'descrepton',
-        'bedrooma',
-        'has_kitchen',
-        'size_house',
-        'bathroom',
     ];
 
     protected $casts = [
         'star_rating' => 'decimal:1',
-        'price' => 'decimal:2',
-        'size_house' => 'decimal:2',
-
         'have_gym' => 'boolean',
         'have_swing' => 'boolean',
         'have_park' => 'boolean',
-        'has_units' => 'boolean',
-        'has_kitchen' => 'boolean',
     ];
 
     /*
@@ -63,4 +49,19 @@ class Property extends Model
     {
         return $this->hasMany(Unit::class);
     }
+
+    public function booking()
+    {
+        return $this->hasMany(Booking::class);
+    }
+    public function reviews()
+{
+    return $this->hasMany(Review::class);
+}
+
+// Helper to calculate average rating automatically
+public function averageRating()
+{
+    return round($this->reviews()->avg('rating'), 1) ?? 0;
+}
 }

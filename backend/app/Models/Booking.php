@@ -2,41 +2,53 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Booking extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'unit_id',
         'user_id',
-        'start_date',
-        'end_date',
-        'total_price',
+        'unit_id',
+        'property_id',
         'status',
-        'payment_type',
-        'contract_paylater',
+        'check_in',
+        'check_out',
+        'total',
     ];
 
+    /**
+     * Relationship: A booking has exactly one payment record.
+     */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class, 'booking_id');
+    }
+
+    /**
+     * Relationship: A booking belongs to a specific room unit.
+     */
     public function unit()
     {
         return $this->belongsTo(Unit::class, 'unit_id');
     }
-
-    public function user()
+    /**
+     * Relationship: A booking belongs to a wider property list.
+     */
+    public function property(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(Property::class);
     }
 
-    public function payment()
+    /**
+     * Relationship: A booking belongs to a guest user.
+     */
+    public function user(): BelongsTo
     {
-        return $this->hasMany(Payment::class);
-    }
-    
-    //generate booking ref first before creating the booking
-    protected static function boot(){
-        parent::boot();
-        static::creating(function($booking){
-            $booking->booking_ref = 'BK-' . strtoupper(substr(str_replace('-', '', \Illuminate\Support\Str::uuid()), 0, 8));
-        });
+        return $this->belongsTo(User::class);
     }
 }

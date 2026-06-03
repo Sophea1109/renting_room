@@ -24,6 +24,8 @@ class User extends Authenticatable
         'bio',
         'otp',
         'otp_expire_at',
+        'payment_gateway_merchant_id',
+        
     ];
 
     protected $hidden = [

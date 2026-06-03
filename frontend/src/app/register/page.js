@@ -1,87 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FaEye, FaEyeSlash, FaCheckCircle } from "react-icons/fa";
-import { sendOtpApi, verifyOtpApi } from "@/utils/api";
 
 export default function RegisterPage() {
   const router = useRouter();
 
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const [form, setForm] = useState({
-    name: "",
+  // Wizard Steps: 'request_otp' | 'verify_and_register' | 'success'
+  const [step, setStep] = useState("request_otp");
+  
+  const [formData, setFormData] = useState({
     email: "",
     telegram_id: "",
-    telegram_username: "",
-    password: "",
-    password_confirmation: "",
+    telegram_phone_number: "",
     otp: "",
+    first_name: "",
+    last_name: "",
+    password: "",
+    password_confirmation: ""
   });
 
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(300); // 5 minute countdown
+
+  // Countdown timer for Step 2
+  useEffect(() => {
+    let interval;
+    if (step === "verify_and_register" && timer > 0) {
+      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [step, timer]);
+
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
   };
 
-  // =============================
-  // STEP 1 → SEND OTP
-  // =============================
-  const handleSendOtp = async (e) => {
+  // Step 1: Request OTP via Telegram
+  const handleRequestOtp = async (e) => {
     e.preventDefault();
-
-    // Validate password match
-    if (form.password !== form.password_confirmation) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    // Validate password length
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
     setLoading(true);
     setError("");
-    setMessage("");
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/send-otp`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: form.email,
-            telegram_id: form.telegram_id,
-            telegram_username: form.telegram_username,
-          }),
-        }
-      );
-
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          telegram_id: formData.telegram_id,
+          telegram_phone_number: formData.telegram_phone_number || null,
+        }),
+      });
+      
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || "Failed to send OTP.");
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to send OTP");
-      }
-
-      setMessage("OTP sent successfully to Telegram");
-
-      // DEV ONLY
-      console.log("OTP:", data.otp);
-
-      setStep(2);
+      setStep("verify_and_register");
+      setTimer(300);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -89,342 +68,226 @@ export default function RegisterPage() {
     }
   };
 
-  // =============================
-  // STEP 2 → VERIFY OTP
-  // =============================
-  const handleVerifyOtp = async (e) => {
+  // Step 2: Verify OTP and Register Account
+  const handleVerifyAndRegister = async (e) => {
     e.preventDefault();
+    if (formData.password !== formData.password_confirmation) {
+      return setError("Passwords do not match.");
+    }
 
     setLoading(true);
     setError("");
-    setMessage("");
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/verify-otp`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: form.name,
-            email: form.email,
-            password: form.password,
-            password_confirmation: form.password_confirmation,
-            otp: form.otp,
-          }),
-        }
-      );
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          otp: Number(formData.otp),
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          password: formData.password,
+          password_confirmation: formData.password_confirmation
+        }),
+      });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || "Verification failed.");
 
-      console.log("Registration API Response:", data); // Debug log
-
-      if (!res.ok) {
-        throw new Error(data.error || "OTP verification failed");
-      }
-
-      // ✅ Save token exactly like your login does
-      if (data.access_token) {
-        localStorage.setItem("token", data.access_token);
-      }
-      
-      // ✅ Save user data if returned from API (like your login expects)
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-      }
-
-      setMessage("Registration successful! Redirecting...");
-
-      // ✅ Redirect based on user role (matching your login logic)
-      setTimeout(() => {
-        if (data.user?.role === "admin") {
-          router.push("/dashboard/admin");
-        } else if (data.user?.role === "user") {
-          router.push("/dashboard/user/homepage");
-        } else {
-          // If no role specified, check localStorage or default to user homepage
-          const storedUser = localStorage.getItem("user");
-          if (storedUser) {
-            const user = JSON.parse(storedUser);
-            if (user.role === "admin") {
-              router.push("/dashboard/admin");
-            } else {
-              router.push("/dashboard/user/homepage");
-            }
-          } else {
-            router.push("/dashboard/user/homepage"); // Default for regular users
-          }
-        }
-      }, 1500);
-      
+      // Success logic: Cache token and redirect
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setStep("success");
     } catch (err) {
-      console.error("Registration error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Step indicators
-  const StepIndicator = () => (
-    <div className="flex items-center justify-center mb-8 gap-4">
-      <div className="flex items-center">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-          step >= 1 ? 'bg-[#235347] text-white' : 'bg-[#051F20] text-gray-400 border border-[#235347]/40'
-        }`}>
-          {step > 1 ? <FaCheckCircle className="w-4 h-4" /> : "1"}
-        </div>
-        <div className={`ml-2 text-sm ${step >= 1 ? 'text-white' : 'text-gray-400'}`}>
-          Account Info
-        </div>
-      </div>
-      <div className={`w-12 h-px ${step >= 2 ? 'bg-[#235347]' : 'bg-[#235347]/40'}`}></div>
-      <div className="flex items-center">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-          step >= 2 ? 'bg-[#235347] text-white' : 'bg-[#051F20] text-gray-400 border border-[#235347]/40'
-        }`}>
-          2
-        </div>
-        <div className={`ml-2 text-sm ${step >= 2 ? 'text-white' : 'text-gray-400'}`}>
-          Verify OTP
-        </div>
-      </div>
-    </div>
-  );
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#051F20] to-[#0a3d3f]">
-      <div className="bg-[#0a2a2b] p-8 rounded-2xl shadow-2xl w-96 border border-[#235347]/30">
-
+    <div className="min-h-screen flex items-center justify-center bg-[#DAF1DE] px-4 py-12">
+      <div className="bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl w-full max-w-md border border-[#8EB69B]/30 transition-all duration-300">
+        
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-50 flex items-center justify-center mb-3">
-            <img
-              src="/images/logo.png"
-              alt="FindRoommate Logo"
-              className="h-10 md:h-9 w-auto object-contain"
-            />
-          </div>
-          <h1 className="text-3xl font-bold text-white">
-            {step === 1 ? "Create Account" : "Verify OTP"}
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            {step === 1 
-              ? "Register with Telegram OTP" 
-              : `Enter the code sent to ${form.email}`}
+          <Link href="/">
+            <img src="/images/logo.png" alt="Logo" className="h-10 w-auto object-contain mb-3" />
+          </Link>
+          <h1 className="text-3xl font-extrabold text-[#051F20] tracking-tight">Create Account</h1>
+          <p className="text-[#235347] text-sm font-medium mt-1 text-center">
+            {step === "request_otp" ? "Link your Telegram to get started" : "Complete your details to join"}
           </p>
         </div>
 
-        {/* Step Indicator */}
-        <StepIndicator />
-
-        {message && (
-          <div className="bg-green-500/10 border border-green-500/50 text-green-400 px-4 py-2 rounded-lg mb-4 text-sm">
-            {message}
-          </div>
-        )}
+        {/* Step Indicators */}
+        <div className="flex items-center justify-between mb-8">
+          <span className={`h-1.5 w-[48%] rounded-full transition-colors duration-300 ${step !== "success" ? "bg-[#0B2B26]" : "bg-[#8EB69B]/40"}`} />
+          <span className={`h-1.5 w-[48%] rounded-full transition-colors duration-300 ${["verify_and_register", "success"].includes(step) ? "bg-[#0B2B26]" : "bg-[#8EB69B]/40"}`} />
+        </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-2 rounded-lg mb-4 text-sm">
+          <div className="mb-5 p-3 bg-red-50 text-red-700 text-xs font-semibold rounded-xl border border-red-100 shadow-sm">
             {error}
           </div>
         )}
 
-        {/* ===================================== */}
-        {/* STEP 1 */}
-        {/* ===================================== */}
-
-        {step === 1 && (
-          <form onSubmit={handleSendOtp}>
-            <div className="mb-4">
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2.5 rounded-lg bg-[#051F20] text-white border border-[#235347]/40 focus:outline-none focus:border-[#235347] focus:ring-2 focus:ring-[#235347]/20 transition-all"
-                placeholder="Enter your full name"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Email Address
-              </label>
+        {/* --- STEP 1: REQUEST OTP --- */}
+        {step === "request_otp" && (
+          <form onSubmit={handleRequestOtp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider">Email Address</label>
               <input
                 type="email"
                 name="email"
-                value={form.email}
+                value={formData.email}
                 onChange={handleChange}
-                required
-                className="w-full px-4 py-2.5 rounded-lg bg-[#051F20] text-white border border-[#235347]/40 focus:outline-none focus:border-[#235347] focus:ring-2 focus:ring-[#235347]/20 transition-all"
                 placeholder="you@example.com"
+                className="w-full px-4 py-3 bg-white border border-[#8EB69B] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#163832] text-[#051F20] placeholder-[#8EB69B]/60 transition"
+                required
               />
             </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Telegram ID
-              </label>
+            <div>
+              <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider">Telegram Chat ID</label>
               <input
                 type="text"
                 name="telegram_id"
-                value={form.telegram_id}
+                value={formData.telegram_id}
                 onChange={handleChange}
+                placeholder="Required to receive OTP"
+                className="w-full px-4 py-3 bg-white border border-[#8EB69B] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#163832] text-[#051F20] placeholder-[#8EB69B]/60 transition"
                 required
-                className="w-full px-4 py-2.5 rounded-lg bg-[#051F20] text-white border border-[#235347]/40 focus:outline-none focus:border-[#235347] focus:ring-2 focus:ring-[#235347]/20 transition-all"
-                placeholder="123456789"
               />
-              <p className="text-gray-400 text-xs mt-1">
-                You can find your Telegram ID by messaging @userinfobot
-              </p>
             </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Telegram Username (Optional)
-              </label>
+            <div>
+              <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider">Telegram Phone Number (Optional)</label>
               <input
-                type="text"
-                name="telegram_username"
-                value={form.telegram_username}
+                type="tel"
+                name="telegram_phone_number"
+                value={formData.telegram_phone_number}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 rounded-lg bg-[#051F20] text-white border border-[#235347]/40 focus:outline-none focus:border-[#235347] focus:ring-2 focus:ring-[#235347]/20 transition-all"
-                placeholder="@username"
+                placeholder="+1234567890"
+                className="w-full px-4 py-3 bg-white border border-[#8EB69B] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#163832] text-[#051F20] placeholder-[#8EB69B]/60 transition"
               />
             </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2.5 rounded-lg bg-[#051F20] text-white border border-[#235347]/40 focus:outline-none focus:border-[#235347] focus:ring-2 focus:ring-[#235347]/20 transition-all pr-10"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-300 transition"
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </button>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="password_confirmation"
-                  value={form.password_confirmation}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2.5 rounded-lg bg-[#051F20] text-white border border-[#235347]/40 focus:outline-none focus:border-[#235347] focus:ring-2 focus:ring-[#235347]/20 transition-all pr-10"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-300 transition"
-                >
-                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                </button>
-              </div>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-[#235347] to-[#1a3f35] text-white py-2.5 rounded-lg hover:from-[#2a7a64] hover:to-[#235347] transition-all duration-300 disabled:opacity-50 font-medium shadow-lg"
+              className="w-full bg-[#0B2B26] hover:bg-[#051F20] text-[#DAF1DE] font-semibold py-3.5 rounded-xl transition shadow-lg shadow-[#0B2B26]/20 disabled:opacity-50"
             >
-              {loading ? "Sending OTP..." : "Send OTP"}
+              {loading ? "Sending OTP..." : "Get Verification Code"}
             </button>
           </form>
         )}
 
-        {/* ===================================== */}
-        {/* STEP 2 */}
-        {/* ===================================== */}
-
-        {step === 2 && (
-          <form onSubmit={handleVerifyOtp}>
-            <div className="mb-6">
-              <label className="block text-gray-300 mb-2 text-sm font-medium">
-                Enter OTP Code
-              </label>
+        {/* --- STEP 2: COMPLETE PROFILE --- */}
+        {step === "verify_and_register" && (
+          <form onSubmit={handleVerifyAndRegister} className="space-y-4">
+            <div className="bg-[#DAF1DE]/40 p-4 rounded-2xl border border-[#8EB69B]/20">
+              <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider text-center">Enter 6-Digit OTP</label>
               <input
                 type="text"
                 name="otp"
-                value={form.otp}
-                onChange={handleChange}
-                required
                 maxLength="6"
-                className="w-full px-4 py-2.5 rounded-lg bg-[#051F20] text-white border border-[#235347]/40 focus:outline-none focus:border-[#235347] focus:ring-2 focus:ring-[#235347]/20 transition-all text-center tracking-[8px] text-xl"
+                value={formData.otp}
+                onChange={handleChange}
                 placeholder="000000"
+                className="w-full text-center tracking-[0.5em] text-2xl font-black bg-transparent text-[#051F20] focus:outline-none"
+                required
               />
-              <div className="flex justify-between items-center mt-2">
-                <p className="text-gray-400 text-xs">
-                  Enter the 6-digit code sent to your Telegram
-                </p>
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  className="text-xs text-[#235347] hover:text-[#2a7a64] transition"
-                >
-                  Resend Code
-                </button>
+              <p className="text-[10px] text-center mt-2 text-[#235347]">
+                Expires in: <span className="font-bold">{formatTime(timer)}</span>
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider">First Name</label>
+                <input
+                  type="text"
+                  name="first_name"
+                  value={formData.first_name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white border border-[#8EB69B] rounded-xl focus:outline-none text-[#051F20]"
+                  required
+                />
               </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider">Last Name</label>
+                <input
+                  type="text"
+                  name="last_name"
+                  value={formData.last_name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white border border-[#8EB69B] rounded-xl focus:outline-none text-[#051F20]"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider">Password</label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 bg-white border border-[#8EB69B] rounded-xl focus:outline-none text-[#051F20]"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase text-[#235347] mb-1.5 tracking-wider">Confirm Password</label>
+              <input
+                type="password"
+                name="password_confirmation"
+                value={formData.password_confirmation}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-white border border-[#8EB69B] rounded-xl focus:outline-none text-[#051F20]"
+                required
+              />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-[#235347] to-[#1a3f35] text-white py-2.5 rounded-lg hover:from-[#2a7a64] hover:to-[#235347] transition-all duration-300 disabled:opacity-50 font-medium shadow-lg mb-3"
+              className="w-full bg-[#0B2B26] hover:bg-[#051F20] text-[#DAF1DE] font-semibold py-3.5 rounded-xl transition shadow-lg"
             >
-              {loading ? "Verifying..." : "Verify & Register"}
+              {loading ? "Finalizing..." : "Create Account"}
             </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setStep(1);
-                setError("");
-                setMessage("");
-              }}
-              className="w-full bg-transparent border border-[#235347]/40 text-gray-300 py-2.5 rounded-lg hover:bg-[#235347]/10 transition-all duration-300 font-medium"
-            >
-              Back to Registration
+            <button type="button" onClick={() => setStep("request_otp")} className="w-full text-[10px] text-[#235347] hover:underline">
+              Mistake in Email? Go back.
             </button>
           </form>
         )}
 
-        {step === 1 && (
-          <p className="text-center text-gray-400 text-sm mt-6">
-            Already have an account?{" "}
-            <a
-              href="/login"
-              className="text-[#235347] hover:text-[#2a7a64] font-medium transition"
-            >
-              Sign in
-            </a>
-          </p>
+        {/* --- STEP 3: SUCCESS --- */}
+        {step === "success" && (
+          <div className="text-center py-6">
+            <div className="w-16 h-16 bg-[#DAF1DE] text-[#051F20] rounded-full flex items-center justify-center mx-auto text-3xl font-bold mb-4 shadow-inner">✓</div>
+            <h3 className="text-2xl font-black text-[#051F20]">Success!</h3>
+            <p className="text-[#235347] text-sm mt-2">Welcome! Your account is ready.</p>
+            <Link href="/dashboard/user/homepage" className="block w-full bg-[#051F20] text-[#DAF1DE] py-3.5 rounded-xl mt-6 font-bold">
+              Start Exploring
+            </Link>
+          </div>
         )}
+
+        <p className="text-center text-[#235347] text-sm font-medium mt-6">
+          Already have an account?{" "}
+          <Link href="/login" className="text-[#0B2B26] hover:text-[#051F20] font-bold hover:underline transition">
+            Sign In
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -2,11 +2,18 @@
 import { useEffect, useState } from "react";
 
 export function useNotifications() {
-  const [permission, setPermission] = useState(Notification.permission);
+  // Start with 'default' on the server to prevent SSR mismatch errors
+  const [permission, setPermission] = useState("default");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setPermission(Notification.permission);
+    }
+  }, []);
 
   const requestPermission = async () => {
-    if (!("Notification" in window)) {
-      console.log("Browser does not support notifications");
+    if (typeof window !== "undefined" && !("Notification" in window)) {
+      console.log("Browser does not support desktop notifications");
       return false;
     }
 
@@ -16,7 +23,8 @@ export function useNotifications() {
   };
 
   const showNotification = (title, options = {}) => {
-    if (permission !== "granted") return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
 
     const defaultOptions = {
       body: options.body || "",
@@ -29,10 +37,10 @@ export function useNotifications() {
 
     const notification = new Notification(title, { ...defaultOptions, ...options });
 
-    notification.onclick = () => {
+    notification.onclick = (e) => {
+      e.preventDefault();
       window.focus();
       notification.close();
-      // Optionally navigate to the chat
       if (options.onClick) options.onClick();
     };
 

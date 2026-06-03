@@ -17,8 +17,11 @@ import {
   ChevronDown,
   Menu,
   Building2,
-  TrendingUp
+  TrendingUp,
+  Package2Icon,
+  File
 } from 'lucide-react';
+import { FaQq } from 'react-icons/fa';
 
 const AdminSidebar = ({ activeTab, onTabChange, collapsed, onToggleCollapse }) => {
   const router = useRouter();
@@ -48,8 +51,26 @@ const AdminSidebar = ({ activeTab, onTabChange, collapsed, onToggleCollapse }) =
     { 
       id: 'Property', 
       label: 'Property Management', 
-      icon: <Bed size={20} />, 
+      icon: <Building2 size={20} />, 
       path: '/dashboard/admin/property',
+    },
+    { 
+      id: 'Property-Type', 
+      label: 'Property-Type Management', 
+      icon: <Bed size={20} />, 
+      path: '/dashboard/admin/property-types',
+    },
+    { 
+      id: 'Booking', 
+      label: 'Booking Management', 
+      icon: <Bed size={20} />, 
+      path: '/dashboard/admin/booking',
+    },
+    { 
+      id: 'Report', 
+      label: 'Report', 
+      icon: <File size={20} />, 
+      path: '/dashboard/admin/report',
     },
   ];
 
