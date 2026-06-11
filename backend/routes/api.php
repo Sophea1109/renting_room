@@ -102,6 +102,17 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::put('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
     Route::get('/my-bookings', [BookingController::class, 'myBookings']);
+    Route::get('/owner/bookings', [BookingController::class, 'ownerBookings']);
+    Route::post(
+        '/bookings/{id}/confirm',
+        [BookingController::class, 'confirmBooking']
+    );
+
+    Route::post(
+        '/bookings/{id}/reject',
+        [BookingController::class, 'rejectBooking']
+    );
+    Route::get('/owner/revenue', [BookingController::class, 'ownerRevenue']);
     
     // Payment Handlers (ADDED VISA SECURE CHECKOUT FOR NEXT.JS)
     Route::get('/payment/gateway/{booking_id}', [PaymentController::class, 'showGateway']);
@@ -141,6 +152,15 @@ Route::post('/report-user', function (Illuminate\Http\Request $request) {
         'message' => 'User has been reported to administration successfully.',
         'data' => $report
     ], 201);
+});
+// Add this inside the auth:sanctum middleware block
+Route::post('/admin/user-reports/{id}/action', [ReportController::class, 'handleAction']);
+
+Route::get('/pending-count', function (Illuminate\Http\Request $request) {
+    $ownerId = $request->query('owner_id');
+    // If you need to filter by owner, add a 'where' clause here
+    $count = \App\Models\UserReport::where('status', 'pending')->count();
+    return response()->json(['count' => $count]);
 });
 });
 

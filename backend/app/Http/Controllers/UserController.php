@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\UserReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +13,7 @@ class UserController extends Controller
     public function index()
     {
         return response()->json(['users' => User::all()]);
+        
     }
 
     public function store(Request $request)
@@ -132,4 +134,5 @@ class UserController extends Controller
             'avatar' => null
         ]);
     }
+    
 }

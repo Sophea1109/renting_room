@@ -96,10 +96,6 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
     },
   ];
 
-  const settingsItems = [
-    { id: 'settings', label: 'Settings', icon: <Settings size={20} />, path: '/dashboard/owner/settings' },
-  ];
-
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       localStorage.removeItem('token');
@@ -301,15 +297,6 @@ export default function OwnerSidebar({ activeTab, onTabChange, collapsed, onTogg
               </h3>
               <div className="space-y-0.5">
                 {menuItems.map(item => renderMenuItem(item))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className={`text-[#235347] text-xs font-semibold uppercase tracking-wider mb-3 ${collapsed ? 'text-center' : 'px-2'}`}>
-                {collapsed ? '•••' : 'Settings'}
-              </h3>
-              <div className="space-y-0.5">
-                {settingsItems.map(item => renderMenuItem(item))}
               </div>
             </div>
           </div>

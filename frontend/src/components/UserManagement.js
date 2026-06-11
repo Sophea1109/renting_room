@@ -215,7 +215,7 @@ export default function UserManagement() {
                   </td>
                   
                   <td className="px-6 py-4 text-white text-sm font-medium">
-                    {user.name}
+                   {`${user.first_name} ${user.last_name}`}
                   </td>
 
                   <td className="px-6 py-4 text-gray-300 text-sm">

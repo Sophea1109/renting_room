@@ -116,6 +116,9 @@ class AuthController extends Controller
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['error' => 'Invalid credentials'], 401);
         }
+        if ($user && $user->is_banned) {
+            return response()->json(['message' => 'Your account has been suspended due to policy violations.'], 403);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

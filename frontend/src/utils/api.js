@@ -390,9 +390,28 @@ export const captureVisaPaymentApi = async (bookingId, cardName) => {
     }),
   });
 };
+export const confirmBooking = (id) =>
+  request(`${API_URL}/bookings/${id}/confirm`, {
+    method: "POST",
+  });
+
+export const rejectBooking = (id) =>
+  request(`${API_URL}/bookings/${id}/reject`, {
+    method: "POST",
+  });
+export const fetchOwnerBookings = () =>
+  request(`${API_URL}/owner/bookings`, {
+    method: "GET",
+  });
+
 
 export const fetchBookingsApi = () => 
   request(`${API_URL}/bookings`, { method: "GET" });
+
+  export const fetchOwnerRevenue = () =>
+  request(`${API_URL}/owner/revenue`, {
+    method: "GET",
+  });
 /* =========================================================
    UNITS (CORRECT SYSTEM)
 ========================================================= */
@@ -442,6 +461,34 @@ export const deleteUnit = (id) =>
     method: "DELETE",
   });
 
+// Add this helper for File Uploads
+// lib/api.js
+export const createUnitWithImage = async (formData) => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/units`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Accept": "application/json",
+      // IMPORTANT: Do NOT set Content-Type; the browser handles it automatically for FormData
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    // This allows the UI to catch the error and display it
+    throw new Error(data.message || "Failed to create unit");
+  }
+
+  return data;
+};
+
+/* =========================================================
+   Review (CORRECT SYSTEM)
+========================================================= */
   export const submitReview = async (data) => {
     const token = localStorage.getItem("token");
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews`, {

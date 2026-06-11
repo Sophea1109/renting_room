@@ -215,56 +215,13 @@ const AdminSidebar = ({ activeTab, onTabChange, collapsed, onToggleCollapse }) =
           p-5 border-b border-[#235347]/30 bg-gradient-to-r from-[#051F20] to-[#0a2a2b]
           ${collapsed ? 'text-center' : ''}
         `}>
-          <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'}`}>
-            <div className="relative">
-              <div className="bg-gradient-to-br from-[#235347] to-[#1a3f35] p-2.5 rounded-xl shadow-lg shadow-[#235347]/30">
-                <Shield size={24} className="text-white" />
-              </div>
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-[#051F20] rounded-full"></span>
-            </div>
-            
-            {!collapsed && (
-              <div className="flex-1">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  Admin Panel
-                </h1>
-                <p className="text-gray-400 text-xs flex items-center">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
-                  Online
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Collapse toggle button */}
-          <button
-            onClick={onToggleCollapse}
-            className={`
-              absolute top-5 right-0 transform translate-x-1/2
-              bg-[#0a2a2b] border border-[#235347]/30 rounded-full p-1.5
-              hover:bg-[#235347] transition-colors shadow-lg
-              ${collapsed ? 'hidden lg:block' : 'hidden lg:block'}
-            `}
-          >
-            {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-          </button>
+          <img
+              src="/images/logo.png"
+              alt="Logo"
+              className="h-10 md:h-9 w-auto object-contain cursor-pointer"
+            />
         </div>
 
-        {/* Search Bar */}
-        {!collapsed && (
-          <div className="px-4 pt-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search menu..."
-                className="w-full px-4 py-2 bg-[#051F20] border border-[#235347]/40 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#235347] focus:ring-1 focus:ring-[#235347] transition-all"
-              />
-              <span className="absolute right-3 top-2.5 text-gray-500">
-                <Menu size={16} />
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Main Menu */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 scrollbar-thin scrollbar-thumb-[#235347] scrollbar-track-[#051F20]">

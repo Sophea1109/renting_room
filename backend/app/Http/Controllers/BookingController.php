@@ -166,4 +166,111 @@ public function availability($id)
 
     return response()->json(['data' => $bookings]);
 }
+public function ownerBookings()
+{
+    $bookings = Booking::with(['user', 'unit.property'])
+        ->whereHas('unit.property', function ($query) {
+            $query->where('user_id', auth()->id());
+        })
+        ->get();
+
+    return response()->json([
+        'data' => $bookings
+    ]);
+}
+public function confirmBooking($id)
+{
+    $booking = Booking::with(['unit.property', 'payment'])
+        ->findOrFail($id);
+
+    // Verify owner owns this property
+    if (
+        auth()->user()->role !== 'admin' &&
+        $booking->unit->property->user_id !== auth()->id()
+    ) {
+        return response()->json([
+            'message' => 'Unauthorized'
+        ], 403);
+    }
+
+    DB::transaction(function () use ($booking) {
+
+        $booking->update([
+            'status' => 'confirmed'
+        ]);
+
+        Payment::where('booking_id', $booking->id)
+            ->update([
+                'payment_status' => 'completed'
+            ]);
+
+        $booking->unit->update([
+            'status' => 'unavailable'
+        ]);
+    });
+    $booking->payment()->updateOrCreate(
+        ['booking_id' => $booking->id],
+        [
+            'payment_status' => 'completed'
+        ]
+    );
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Booking confirmed successfully'
+    ]);
+}
+public function rejectBooking($id)
+{
+    $booking = Booking::with(['unit.property'])
+        ->findOrFail($id);
+
+    if (
+        auth()->user()->role !== 'admin' &&
+        $booking->unit->property->user_id !== auth()->id()
+    ) {
+        return response()->json([
+            'message' => 'Unauthorized'
+        ], 403);
+    }
+
+    $booking->update([
+        'status' => 'rejected'
+    ]);
+
+    Payment::where('booking_id', $booking->id)
+        ->update([
+            'payment_status' => 'failed'
+        ]);
+
+        $booking->payment()->updateOrCreate(
+            ['booking_id' => $booking->id],
+            [
+                'payment_status' => 'failed'
+            ]
+        );
+    return response()->json([
+        'success' => true,
+        'message' => 'Booking rejected'
+    ]);
+}
+public function ownerRevenue()
+{
+    $revenue = Booking::where('status', 'confirmed')
+        ->whereHas('unit.property', function ($query) {
+            $query->where('user_id', auth()->id());
+        })
+        ->sum('total');
+
+    $totalBookings = Booking::where('status', 'confirmed')
+        ->whereHas('unit.property', function ($query) {
+            $query->where('user_id', auth()->id());
+        })
+        ->count();
+
+    return response()->json([
+        'revenue' => $revenue,
+        'total_bookings' => $totalBookings
+    ]);
+}
 }
