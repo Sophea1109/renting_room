@@ -108,7 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payment/visa-checkout', [PaymentController::class, 'processVisaCheckout']);
     
     // Reviews
-    Route::get('/units/{id}/reviews', [ReviewController::class, 'index']);
+    Route::get('/units/{id}/reviews', [ReviewController::class, 'index']); // Fetch reviews for a specific unit
     Route::post('/reviews', [ReviewController::class, 'store']);
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report']);
     

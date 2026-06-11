@@ -9,6 +9,16 @@ use App\Models\ReviewReport;
 
 class ReviewController extends Controller
 {
+    public function index(Request $request, $unitId)
+    {
+        $reviews = Review::with('user:id,name')
+            ->where('unit_id', $unitId)
+            ->latest()
+            ->get();
+
+        return response()->json(['status' => 'success', 'data' => $reviews]);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
