@@ -303,3 +303,11 @@ function ChatContent() {
     </div>
   );
 }
+
+export default function MessagesPage() {
+  return (
+    <Suspense>
+      <ChatContent />
+    </Suspense>
+  );
+}
